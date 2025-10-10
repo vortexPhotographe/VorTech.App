@@ -1,57 +1,32 @@
 <UserControl x:Class="VorTech.App.Views.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Grid Margin="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
-    <!-- KPIs -->
-    <UniformGrid Rows="1" Columns="4" Margin="0,0,0,8">
-      <!-- Carte -->
-      <Border Style="{StaticResource Card}">
-        <StackPanel>
-          <TextBlock Text="CA du mois" Foreground="{StaticResource Subtle}" FontSize="12"/>
-          <TextBlock Text="{Binding CaMois}" FontSize="24" FontWeight="SemiBold"/>
-        </StackPanel>
-      </Border>
+  <Grid Margin="12">
+    <!-- Syntaxe correcte : property elements -->
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
 
-      <Border Style="{StaticResource Card}">
-        <StackPanel>
-          <TextBlock Text="Factures à régler" Foreground="{StaticResource Subtle}" FontSize="12"/>
-          <TextBlock Text="{Binding FacturesARégler}" FontSize="24" FontWeight="SemiBold"/>
-        </StackPanel>
-      </Border>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
 
-      <Border Style="{StaticResource Card}">
-        <StackPanel>
-          <TextBlock Text="Devis ouverts" Foreground="{StaticResource Subtle}" FontSize="12"/>
-          <TextBlock Text="{Binding DevisOuverts}" FontSize="24" FontWeight="SemiBold"/>
-        </StackPanel>
-      </Border>
+    <!-- En-tête -->
+    <TextBlock Grid.Row="0"
+               Text="Dashboard"
+               FontSize="{StaticResource FontSizeLarge}"
+               FontWeight="SemiBold"
+               Margin="0,0,0,8"/>
 
-      <Border Style="{StaticResource Card}">
-        <StackPanel>
-          <TextBlock Text="Articles sous seuil" Foreground="{StaticResource Subtle}" FontSize="12"/>
-          <TextBlock Text="{Binding StockBas}" FontSize="24" FontWeight="SemiBold"/>
-        </StackPanel>
-      </Border>
-    </UniformGrid>
-
-    <!-- Liste “stocks bas” (placeholder) -->
-    <GroupBox Grid.Row="1" Header="Stocks bas (exemple)">
-      <DataGrid ItemsSource="{Binding StockBasItems}" AutoGenerateColumns="False" HeadersVisibility="Column"
-                CanUserAddRows="False" CanUserDeleteRows="False" Margin="8">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="SKU" Binding="{Binding Sku}" Width="2*"/>
-          <DataGridTextColumn Header="Article" Binding="{Binding Libelle}" Width="4*"/>
-          <DataGridTextColumn Header="Qte" Binding="{Binding Qte}" Width="*"/>
-          <DataGridTextColumn Header="Mini" Binding="{Binding Mini}" Width="*"/>
-        </DataGrid.Columns>
-      </DataGrid>
-    </GroupBox>
-
-    <!-- Actions rapides -->
-    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-      <Button Content="Nouveau devis"/>
-      <Button Content="Nouvelle facture"/>
-      <Button Content="Importer CSV" Margin="8,0,0,0"/>
-    </StackPanel>
+    <!-- Contenu provisoire : compile sans VM -->
+    <Border Grid.Row="1"
+            Background="{StaticResource Panel}"
+            BorderBrush="{StaticResource Border}"
+            BorderThickness="1"
+            Padding="12">
+      <TextBlock Text="(À venir) KPIs, derniers devis/factures, etc."
+                 Foreground="{StaticResource Subtle}"/>
+    </Border>
   </Grid>
 </UserControl>
