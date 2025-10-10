@@ -10,11 +10,14 @@ namespace VorTech.App
         public static string AssetsDir => Path.Combine(AppDir, "Assets");
         public static string LogsDir => Path.Combine(AppDir, "Logs");
         public static string DbPath => Path.Combine(DataDir, "app.db");
+		public static string ConfigDir => Path.Combine(AppContext.BaseDirectory, "Config");
+		public static string SettingsFile => Path.Combine(ConfigDir, "settings.json");
         static Paths()
         {
             Directory.CreateDirectory(DataDir);
             Directory.CreateDirectory(AssetsDir);
             Directory.CreateDirectory(LogsDir);
+			Directory.CreateDirectory(ConfigDir);
         }
     }
 }

@@ -8,8 +8,7 @@ namespace VorTech.App.Services
     public static class ConfigService
     {
         // Si tu as déjà un Paths.ConfigJson garde-le; sinon mets un chemin relatif
-        private static string ConfigPath =>
-            Paths.ConfigJson; // ex: Path.Combine(AppContext.BaseDirectory, "Config", "appsettings.json")
+        private static string ConfigPath => Paths.SettingsFile;
 
         private static readonly JsonSerializerOptions JsonOpts = new()
         {
@@ -32,15 +31,15 @@ namespace VorTech.App.Services
 
             // Valeurs par défaut
             return new AppConfig
-            {
-                PaymentMethods =
-                {
-                    new PaymentMethod { Name = "CB",      FixedFee = 0.25, PercentFee = 1.5 },
-                    new PaymentMethod { Name = "Espèces", FixedFee = 0,    PercentFee = 0   },
-                    new PaymentMethod { Name = "PayPal",  FixedFee = 0.35, PercentFee = 2.9 },
-                    new PaymentMethod { Name = "Virement",FixedFee = 0,    PercentFee = 0   }
-                }
-            };
+			{
+				PaymentMethods =
+				{
+					new Models.PaymentMethod { Name = "CB",       FixedFee = 0.25, PercentFee = 1.5 },
+					new Models.PaymentMethod { Name = "Espèces",  FixedFee = 0,    PercentFee = 0   },
+					new Models.PaymentMethod { Name = "PayPal",   FixedFee = 0.35, PercentFee = 2.9 },
+					new Models.PaymentMethod { Name = "Virement", FixedFee = 0,    PercentFee = 0   }
+				}
+}			;
         }
 
         public static void Save(AppConfig config)
