@@ -5,28 +5,28 @@
     <!-- KPIs -->
     <UniformGrid Rows="1" Columns="4" Margin="0,0,0,8">
       <!-- Carte -->
-      <Border Margin="6" Padding="12" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6">
+      <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="CA du mois" Foreground="{StaticResource Subtle}" FontSize="12"/>
           <TextBlock Text="{Binding CaMois}" FontSize="24" FontWeight="SemiBold"/>
         </StackPanel>
       </Border>
 
-      <Border Margin="6" Padding="12" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6">
+      <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Factures à régler" Foreground="{StaticResource Subtle}" FontSize="12"/>
           <TextBlock Text="{Binding FacturesARégler}" FontSize="24" FontWeight="SemiBold"/>
         </StackPanel>
       </Border>
 
-      <Border Margin="6" Padding="12" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6">
+      <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Devis ouverts" Foreground="{StaticResource Subtle}" FontSize="12"/>
           <TextBlock Text="{Binding DevisOuverts}" FontSize="24" FontWeight="SemiBold"/>
         </StackPanel>
       </Border>
 
-      <Border Margin="6" Padding="12" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6">
+      <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Articles sous seuil" Foreground="{StaticResource Subtle}" FontSize="12"/>
           <TextBlock Text="{Binding StockBas}" FontSize="24" FontWeight="SemiBold"/>
