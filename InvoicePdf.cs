@@ -4,6 +4,9 @@ using System.IO;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
+using VorTech.App.Services;   // ← pour accéder à ConfigService
+using VorTech.App.Models;     // (si pas déjà présent)
+
 
 namespace VorTech.App
 {
@@ -14,6 +17,35 @@ namespace VorTech.App
                                                  bool showMention293B)
         {
             var doc = new Document();
+			
+			// --- Charger la config utilisateur (Réglages) ---
+			var cfg = ConfigService.Load();
+
+			// S'il n'y a pas encore de section, en créer une
+			var section = doc.Sections.Count > 0 ? doc.LastSection : doc.AddSection();
+
+			// ENTÊTE : Nom commercial (ou fallback), centré
+			var hdr = section.Headers.Primary;
+			var ph = hdr.AddParagraph(string.IsNullOrWhiteSpace(cfg.BusinessName) ? "Votre entreprise" : cfg.BusinessName);
+			ph.Format.Alignment = ParagraphAlignment.Center;
+			ph.Format.Font.Size = 12;
+			ph.Format.Font.Bold = true;
+			ph.Format.SpaceAfter = Unit.FromPoint(6);
+
+			// PIED : SIRET + IBAN/BIC (si présents)
+			var ftr = section.Footers.Primary;
+			var footerLines = new List<string>();
+			if (!string.IsNullOrWhiteSpace(cfg.Siret)) footerLines.Add($"SIREN/SIRET : {cfg.Siret}");
+			if (!string.IsNullOrWhiteSpace(cfg.Iban))  footerLines.Add($"IBAN : {cfg.Iban}");
+			if (!string.IsNullOrWhiteSpace(cfg.Bic))   footerLines.Add($"BIC : {cfg.Bic}");
+			if (footerLines.Count > 0)
+			{
+				var pf = ftr.AddParagraph(string.Join("   •   ", footerLines));
+				pf.Format.Alignment = ParagraphAlignment.Center;
+				pf.Format.Font.Size = 8.5;
+				pf.Format.SpaceBefore = Unit.FromPoint(8);
+			}
+
             doc.Info.Title = $"Facture {number}";
 
             var sec = doc.AddSection();
@@ -31,9 +63,9 @@ namespace VorTech.App
             top.AddColumn(Unit.FromCentimeter(9));
             top.AddColumn(Unit.FromCentimeter(8));
             var tr = top.AddRow();
-            var p1 = tr.Cells[0].AddParagraph($"N° {number}\\nDate : {DateTime.Today:dd/MM/yyyy}");
+            var p1 = tr.Cells[0].AddParagraph($"N° {number}\nDate : {DateTime.Today:dd/MM/yyyy}");
             p1.Format.SpaceAfter = Unit.FromPoint(6);
-            var p2 = tr.Cells[1].AddParagraph($"Destinataire :\\n{clientName}\\n{clientAddress}");
+            var p2 = tr.Cells[1].AddParagraph($"Destinataire :\n{clientName}\n{clientAddress}");
             p2.Format.Alignment = ParagraphAlignment.Right;
 
             var tbl = sec.AddTable();
@@ -79,6 +111,13 @@ namespace VorTech.App
 
 			var renderer = new PdfDocumentRenderer();
             renderer.Document = doc;
+			if (cfg.IsMicro)
+			{
+				var p293b = doc.LastSection.AddParagraph("TVA non applicable, art. 293 B du CGI");
+				p293b.Format.Font.Size = 9;
+				p293b.Format.Font.Italic = true;
+				p293b.Format.SpaceBefore = Unit.FromPoint(6);
+			}
             renderer.RenderDocument();
             Directory.CreateDirectory(Path.GetDirectoryName(outfile)!);
             renderer.PdfDocument.Save(outfile);
