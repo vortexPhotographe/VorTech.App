@@ -1,7 +1,34 @@
-﻿bin/
+﻿# Build / IDE
+bin/
 obj/
 .vs/
-.vscode/
 *.user
 *.suo
+TestResults/
+Logs/
+*.cache
+
+# Publish
 publish/
+**/publish/
+*.pubxml
+*.Publish.xml
+
+# NuGet (si jamais un dossier 'packages' apparaît localement)
+packages/
+
+# Configs locales / secrets
+appsettings.json
+secrets.json
+*.Secret.json
+
+# Données locales
+Data/*.db
+Backups/
+
+# JetBrains / Rider
+.idea/
+*.iml
+
+# Fichiers volumineux temporaires
+*.dmp
