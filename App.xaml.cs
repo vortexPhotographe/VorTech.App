@@ -1,6 +1,6 @@
 using System.Windows;
+using System.Windows.Threading;
 using VorTech.App.Services;
-using System.IO;
 
 namespace VorTech.App
 {
@@ -8,17 +8,27 @@ namespace VorTech.App
     {
         private void App_Startup(object sender, StartupEventArgs e)
         {
-            Db.Init(); // crée/maintiens le schéma SQLite
-			protected override void OnStartup(StartupEventArgs e)
-			{
-				base.OnStartup(e);
+            // Initialisation centrale
+            Db.Init();
+            _ = ConfigService.Load();
+        }
 
-				// S'assure que /Config existe (clé USB / exe portable)
-				Directory.CreateDirectory(Paths.ConfigDir);
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            // Catch global des exceptions UI -> on empêche la fermeture brutale
+            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+        }
 
-				// Charge (ou crée) la config au démarrage
-				_ = ConfigService.Load();
-			}
+        private void App_DispatcherUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            MessageBox.Show(
+                "Erreur non gérée : " + e.Exception.Message,
+                "Erreur",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error
+            );
+            e.Handled = true; // évite que l'appli se ferme
         }
     }
 }
