@@ -1,3 +1,7 @@
+- 📘 [Spécification (SPEC)](docs/SPEC.md)
+- ✅ [Décisions actées](docs/DECISIONS.md)
+- 🗺️ [Roadmap / TODO](docs/TODO.md)
+
 VorTech.App — WPF .NET 8 (squelette complet)
 
 Commandes:
