@@ -5,7 +5,7 @@
     <StackPanel Margin="12">
       <GroupBox Header="Profil fiscal">
         <StackPanel Margin="10,8,10,12">
-          <CheckBox Content="Micro-entrepreneur — TVA non applicable (art. 293 B du CGI)"/>
+          <CheckBox x:Name="Chk293B" Content="Micro-entrepreneur — TVA non applicable (art. 293 B du CGI)"  IsChecked="{Binding IsMicro, Mode=TwoWay}"/>
           <TextBlock Margin="0,6,0,0" Foreground="{StaticResource Subtle}">
             (Placeholder) Active la mention sur devis et factures.
           </TextBlock>
