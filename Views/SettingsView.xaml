@@ -1,0 +1,22 @@
+<UserControl x:Class="VorTech.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="12">
+      <GroupBox Header="Profil fiscal">
+        <StackPanel Margin="10,8,10,12">
+          <CheckBox Content="Micro-entrepreneur — TVA non applicable (art. 293 B du CGI)"/>
+          <TextBlock Margin="0,6,0,0" Foreground="{StaticResource Subtle}">
+            (Placeholder) Active la mention sur devis et factures.
+          </TextBlock>
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Moyens de règlement">
+        <Grid Margin="10">
+          <DataGrid AutoGenerateColumns="True" Height="200"/>
+        </Grid>
+      </GroupBox>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

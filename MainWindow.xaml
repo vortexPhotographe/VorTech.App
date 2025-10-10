@@ -1,0 +1,33 @@
+<Window x:Class="VorTech.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VorTech.App" Width="1200" Height="720"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Fore}">
+  <DockPanel>
+
+    <!-- Barre du haut -->
+    <Border DockPanel.Dock="Top"
+            Background="{StaticResource HeaderBg}"
+            BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1"
+            Padding="8,6">
+      <StackPanel Orientation="Horizontal" >
+        <Button Content="Dashboard" Click="NavDashboard_Click"/>
+        <Button Content="Clients"   Click="NavClients_Click"   Margin="8,0,0,0"/>
+        <Button Content="Articles"  Click="NavArticles_Click"  Margin="8,0,0,0"/>
+        <Button Content="Devis"     Click="NavDevis_Click"     Margin="8,0,0,0"/>
+        <Button Content="Factures"  Click="NavInvoices_Click"  Margin="8,0,0,0"/>
+        <Button Content="Réglages"  Click="NavSettings_Click"  Margin="8,0,0,0"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Zone centrale -->
+    <ContentControl x:Name="MainContent" Focusable="False"/>
+
+    <!-- Barre de statut -->
+    <StatusBar DockPanel.Dock="Bottom"
+               Background="{StaticResource HeaderBg}"
+               Foreground="{StaticResource Subtle}">
+      <StatusBarItem Content="Prêt."/>
+    </StatusBar>
+  </DockPanel>
+</Window>
