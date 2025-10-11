@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using VorTech.App.Models;
@@ -7,49 +9,69 @@ using VorTech.App.Services;
 
 namespace VorTech.App.Views
 {
-    public partial class ClientsView : UserControl
+    public partial class ClientsView : UserControl, INotifyPropertyChanged
     {
         private readonly ClientService _svc = new ClientService();
-        public ObservableCollection<Client> Items { get; } = new();
+
+        public ObservableCollection<Client> Clients { get; } = new ObservableCollection<Client>();
+
+        private Client? _selectedClient;
+        public Client? SelectedClient
+        {
+            get => _selectedClient;
+            set { _selectedClient = value; OnPropertyChanged(); }
+        }
 
         public ClientsView()
         {
             InitializeComponent();
+            DataContext = this;
             Reload();
-            GridClients.ItemsSource = Items;
         }
 
         private void Reload()
         {
-            Items.Clear();
+            Clients.Clear();
             foreach (var c in _svc.GetAll())
-                Items.Add(c);
+                Clients.Add(c);
+
+            SelectedClient = Clients.Count > 0 ? Clients[0] : null;
+        }
+
+        private void New_Click(object sender, RoutedEventArgs e)
+        {
+            SelectedClient = new Client();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // Ajoute les nouvelles lignes (Id = 0) et sauvegarde les modifiées
-            foreach (var c in Items.ToList())
-            {
-                if (string.IsNullOrWhiteSpace(c.Name)) continue; // Nom obligatoire
-                _svc.Save(c);
-            }
+            if (SelectedClient == null) return;
+
+            _svc.Save(SelectedClient);
+
+            var keepId = SelectedClient.Id;
             Reload();
-            MessageBox.Show("Enregistré.", "Clients", MessageBoxButton.OK, MessageBoxImage.Information);
+            SelectedClient = Clients.FirstOrDefault(x => x.Id == keepId) ?? Clients.FirstOrDefault();
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            if (GridClients.SelectedItem is Client c && c.Id > 0)
-            {
-                if (MessageBox.Show($"Supprimer « {c.Name} » ?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
-                {
-                    _svc.Delete(c.Id);
-                    Items.Remove(c);
-                }
-            }
+            if (SelectedClient == null || SelectedClient.Id <= 0) return;
+
+            var res = MessageBox.Show("Supprimer ce client ?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (res != MessageBoxResult.Yes) return;
+
+            _svc.Delete(SelectedClient.Id);
+            Reload();
         }
 
-        private void Reload_Click(object sender, RoutedEventArgs e) => Reload();
+        private void Reload_Click(object sender, RoutedEventArgs e)
+        {
+            Reload();
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
