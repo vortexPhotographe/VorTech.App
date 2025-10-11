@@ -4,106 +4,149 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="1000">
-    <Grid Margin="12">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="320"/>
-            <ColumnDefinition Width="12"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+             d:DesignHeight="600" d:DesignWidth="1200">
 
-        <!-- Colonne gauche : liste compacte -->
-        <DockPanel Grid.Column="0">
-            <TextBlock Text="Clients" FontSize="18" FontWeight="Bold" Margin="0,0,0,8"/>
-            <ListBox ItemsSource="{Binding Clients}"
-                     SelectedItem="{Binding SelectedClient, Mode=TwoWay}"
-                     Margin="0,8,0,0">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Nom}" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding Prenom}" />
-                            <TextBlock Text="{Binding NomTeam}" FontStyle="Italic" Opacity="0.8"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+  <!-- Grille externe : gauche fixe, séparateur, zone principale élastique -->
+  <Grid Margin="12">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="340"/>
+      <ColumnDefinition Width="16"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
 
-        <!-- Separateur -->
-        <Border Grid.Column="1" Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Opacity="0.2"/>
+    <!-- ===== Colonne GAUCHE : liste clients ===== -->
+    <GroupBox Grid.Column="0" Header="Clients"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+      <Border Style="{StaticResource Card}">
+        <ListBox ItemsSource="{Binding Clients}"
+                 SelectedItem="{Binding SelectedClient, Mode=TwoWay}"
+                 Background="{StaticResource Panel}"
+                 BorderBrush="{StaticResource Border}"
+                 BorderThickness="1"
+                 Padding="8">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,6">
+                <TextBlock Text="{Binding Nom}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Prenom}" Foreground="{StaticResource Subtle}"/>
+                <TextBlock Text="{Binding NomTeam}" FontStyle="Italic" Foreground="{StaticResource Subtle}"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+    </GroupBox>
 
-        <!-- Colonne droite : fiche client -->
-        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            <Grid>
+    <!-- ===== Zone principale : Fiche ( * ) | Raccourcis ( Auto ) ===== -->
+    <Grid Grid.Column="2" HorizontalAlignment="Stretch">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="16"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Fiche client -->
+      <GroupBox Grid.Column="0" Header="Fiche client"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <Grid Margin="6">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="12"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Barre d'actions -->
+            <StackPanel Orientation="Horizontal" Grid.Row="0">
+              <Button Content="Nouveau" Click="New_Click"/>
+              <Button Content="Enregistrer" Click="Save_Click"/>
+              <Button Content="Supprimer" Click="Delete_Click"/>
+              <Button Content="Recharger" Click="Reload_Click"/>
+            </StackPanel>
+
+            <Border Grid.Row="1" Height="12" Background="Transparent"/>
+
+            <!-- Formulaire -->
+            <Border Grid.Row="2" Style="{StaticResource Card}">
+              <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="240"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Barre d actions -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <Button Content="Nouveau" Click="New_Click" Margin="0,0,8,0"/>
-                    <Button Content="Enregistrer" Click="Save_Click" Margin="0,0,8,0"/>
-                    <Button Content="Supprimer" Click="Delete_Click" Margin="0,0,8,0"/>
-                    <Button Content="Recharger" Click="Reload_Click"/>
-                </StackPanel>
+                <Label Grid.Row="0" Grid.Column="0" Content="Nom"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SelectedClient.Nom, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <!-- Formulaire -->
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="200"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <Label Grid.Row="1" Grid.Column="0" Content="Prenom"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SelectedClient.Prenom, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Nom" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Nom, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="2" Grid.Column="0" Content="Nom Team"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SelectedClient.NomTeam, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Prenom" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Prenom, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="3" Grid.Column="0" Content="Societe"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SelectedClient.Societe, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Nom Team" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.NomTeam, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="4" Grid.Column="0" Content="SIRET"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SelectedClient.Siret, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Societe" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Societe, UpdateSourceTrigger=PropertyChanged}" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="5" Grid.Column="0" Content="Adresse"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SelectedClient.Adresse, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="SIRET" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Siret, UpdateSourceTrigger=PropertyChanged}" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="6" Grid.Column="0" Content="Code postal"/>
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SelectedClient.CodePostal, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Adresse" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Adresse, UpdateSourceTrigger=PropertyChanged}" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="7" Grid.Column="0" Content="Ville"/>
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding SelectedClient.Ville, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Code postal" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.CodePostal, UpdateSourceTrigger=PropertyChanged}" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="8" Grid.Column="0" Content="Email"/>
+                <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SelectedClient.Email, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Ville" Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Ville, UpdateSourceTrigger=PropertyChanged}" Grid.Row="7" Grid.Column="1" Margin="0,0,0,8"/>
+                <Label Grid.Row="9" Grid.Column="0" Content="Telephone"/>
+                <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding SelectedClient.Telephone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Email" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Email, UpdateSourceTrigger=PropertyChanged}" Grid.Row="8" Grid.Column="1" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Telephone" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Telephone, UpdateSourceTrigger=PropertyChanged}" Grid.Row="9" Grid.Column="1" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Notes" Grid.Row="10" Grid.Column="0" VerticalAlignment="Top" Margin="0,0,8,8"/>
-                    <TextBox Text="{Binding SelectedClient.Notes, UpdateSourceTrigger=PropertyChanged}" Grid.Row="10" Grid.Column="1" Margin="0,0,0,8" AcceptsReturn="True" Height="100" VerticalScrollBarVisibility="Auto"/>
-                </Grid>
-            </Grid>
+                <Label Grid.Row="10" Grid.Column="0" Content="Notes" VerticalAlignment="Top"/>
+                <TextBox Grid.Row="10" Grid.Column="1"
+                         Text="{Binding SelectedClient.Notes, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" Height="120"
+                         VerticalScrollBarVisibility="Auto"/>
+              </Grid>
+            </Border>
+          </Grid>
         </ScrollViewer>
+      </GroupBox>
+
+      <!-- Séparateur -->
+      <Border Grid.Column="1" Width="16" Background="Transparent"/>
+
+      <!-- Raccourcis : largeur auto bornée -->
+      <GroupBox Grid.Column="2" Header="Raccourcis"
+                HorizontalAlignment="Left" HorizontalContentAlignment="Stretch"
+                MinWidth="260" MaxWidth="360">
+        <StackPanel Margin="6">
+          <Button Content="Nouveau devis" Click="Shortcut_NewDevis_Click" Margin="0,0,0,6"/>
+          <Button Content="Nouvelle facture" Click="Shortcut_NewFacture_Click" Margin="0,0,0,6"/>
+          <Button Content="Devis du client" Click="Shortcut_DevisClient_Click" Margin="0,0,0,6"/>
+          <Button Content="Factures du client" Click="Shortcut_FacturesClient_Click" Margin="0,0,0,6"/>
+          <Button Content="Parc radios" Click="Shortcut_ParcRadios_Click" Margin="0,0,0,6"/>
+          <Button Content="Cartes SIM" Click="Shortcut_CartesSim_Click" Margin="0,0,0,6"/>
+          <Button Content="Frequences UHF" Click="Shortcut_FreqUhf_Click"/>
+        </StackPanel>
+      </GroupBox>
     </Grid>
+  </Grid>
 </UserControl>

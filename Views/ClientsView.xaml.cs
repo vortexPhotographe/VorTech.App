@@ -70,6 +70,44 @@ namespace VorTech.App.Views
             Reload();
         }
 
+        // Raccourcis (placeholders)
+        private void Shortcut_NewDevis_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Nouveau devis (TODO liaison)", "Raccourcis");
+        }
+
+        private void Shortcut_NewFacture_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Nouvelle facture (TODO liaison)", "Raccourcis");
+        }
+
+        private void Shortcut_DevisClient_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedClient == null) { MessageBox.Show("Aucun client selectionne."); return; }
+            MessageBox.Show($"Voir devis du client Id={SelectedClient.Id} (TODO).", "Raccourcis");
+        }
+
+        private void Shortcut_FacturesClient_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedClient == null) { MessageBox.Show("Aucun client selectionne."); return; }
+            MessageBox.Show($"Voir factures du client Id={SelectedClient.Id} (TODO).", "Raccourcis");
+        }
+
+        private void Shortcut_ParcRadios_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Parc radios (TODO liaison)", "Raccourcis");
+        }
+
+        private void Shortcut_CartesSim_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Cartes SIM (TODO liaison)", "Raccourcis");
+        }
+
+        private void Shortcut_FreqUhf_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Frequences UHF (TODO liaison)", "Raccourcis");
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
