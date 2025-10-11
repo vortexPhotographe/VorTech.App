@@ -1,7 +1,159 @@
 <UserControl x:Class="VorTech.App.Views.ArticlesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1200"
+             HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+
   <Grid Margin="12">
-    <DataGrid AutoGenerateColumns="True"/>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="340"/>
+      <ColumnDefinition Width="16"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- Liste gauche -->
+    <GroupBox Grid.Column="0" Header="Articles">
+      <Border Style="{StaticResource Card}">
+        <ListBox ItemsSource="{Binding Articles}"
+                 SelectedItem="{Binding Selected, Mode=TwoWay}"
+                 Background="{StaticResource Panel}"
+                 BorderBrush="{StaticResource Border}"
+                 BorderThickness="1"
+                 Padding="8">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,6">
+                <TextBlock Text="{Binding Libelle}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Code}" Foreground="{StaticResource Subtle}"/>
+                <TextBlock Text="{Binding Type}" FontStyle="Italic" Foreground="{StaticResource Subtle}"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+    </GroupBox>
+
+    <!-- Zone principale -->
+    <Grid Grid.Column="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="16"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Fiche article -->
+      <GroupBox Grid.Column="0" Header="Fiche article" HorizontalContentAlignment="Stretch">
+        <ScrollViewer x:Name="FicheScroll"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+          <Grid Margin="6"
+                Width="{Binding ElementName=FicheScroll, Path=ViewportWidth}">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="12"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Actions -->
+            <StackPanel Orientation="Horizontal" Grid.Row="0">
+              <Button Content="Nouveau" Click="New_Click"/>
+              <Button Content="Enregistrer" Click="Save_Click"/>
+              <Button Content="Supprimer" Click="Delete_Click"/>
+              <Button Content="Recharger" Click="Reload_Click"/>
+            </StackPanel>
+
+            <Border Grid.Row="1" Height="12" Background="Transparent"/>
+
+            <!-- Formulaire -->
+            <Border Grid.Row="2" Style="{StaticResource Card}" HorizontalAlignment="Stretch">
+              <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="220"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Code"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Selected.Code, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="1" Grid.Column="0" Content="Libelle"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Selected.Libelle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="2" Grid.Column="0" Content="Type"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Selected.Type, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="3" Grid.Column="0" Content="Prix achat HT"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Selected.PrixAchatHT, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="4" Grid.Column="0" Content="Prix vente HT"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Selected.PrixVenteHT, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="5" Grid.Column="0" Content="TVA"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Selected.TVA, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="6" Grid.Column="0" Content="Stock actuel"/>
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Selected.StockActuel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="7" Grid.Column="0" Content="Seuil alerte"/>
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Selected.SeuilAlerte, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="8" Grid.Column="0" Content="Actif"/>
+                <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding Selected.Actif, Mode=TwoWay}" Margin="0,4,0,8"/>
+
+                <Label Grid.Row="9" Grid.Column="0" Content="Derniere MAJ"/>
+                <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding Selected.DerniereMAJ, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <Label Grid.Row="10" Grid.Column="0" Content="Taux cotisation"/>
+                <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Selected.TauxCotisation, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+              </Grid>
+            </Border>
+          </Grid>
+        </ScrollViewer>
+      </GroupBox>
+
+      <!-- séparateur -->
+      <Border Grid.Column="1" Width="16" Background="Transparent"/>
+
+      <!-- Composition du pack (visuel prêt) -->
+      <GroupBox Grid.Column="2" Header="Composition (si Type = Pack)"
+                HorizontalAlignment="Left" MinWidth="320" MaxWidth="420">
+        <StackPanel Margin="6">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Ajouter composant" Click="AddComponent_Click"/>
+            <Button Content="Supprimer sélection" Click="RemoveComponent_Click" Margin="8,0,0,0"/>
+          </StackPanel>
+
+          <DataGrid x:Name="GridComponents" AutoGenerateColumns="False"
+                    ItemsSource="{Binding Components}"
+                    CanUserAddRows="False" CanUserDeleteRows="False"
+                    IsReadOnly="True" Height="300">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Code" Binding="{Binding ComponentCode}" Width="*"/>
+              <DataGridTextColumn Header="Libellé" Binding="{Binding ComponentLibelle}" Width="2*"/>
+              <DataGridTextColumn Header="Qté" Binding="{Binding Qte}" Width="*" />
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Text="Astuce: pour l’instant, l’ajout se fait par Code (boîte de dialogue). L’éditeur avancé (picker d’articles) viendra après."
+                     TextWrapping="Wrap" Foreground="{StaticResource Subtle}" Margin="0,8,0,0"/>
+        </StackPanel>
+      </GroupBox>
+    </Grid>
   </Grid>
 </UserControl>
