@@ -38,122 +38,255 @@
 
     <!-- Zone principale -->
     <Grid Grid.Column="2">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="16"/>
-        <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
+      <TabControl Style="{StaticResource TabControl.Dark}" ItemContainerStyle="{StaticResource TabItem.Dark}">
 
-      <!-- Fiche article -->
-      <GroupBox Grid.Column="0" Header="Fiche article" HorizontalContentAlignment="Stretch">
-        <ScrollViewer x:Name="FicheScroll"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-          <Grid Margin="6"
-                Width="{Binding ElementName=FicheScroll, Path=ViewportWidth}">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="12"/>
-              <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <!-- ===== Onglet 1 : Fiche article ===== -->
+        <TabItem Header="Fiche">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- Actions -->
-            <StackPanel Orientation="Horizontal" Grid.Row="0">
-              <Button Content="Nouveau" Click="New_Click"/>
-              <Button Content="Enregistrer" Click="Save_Click"/>
-              <Button Content="Supprimer" Click="Delete_Click"/>
-              <Button Content="Recharger" Click="Reload_Click"/>
-            </StackPanel>
+            <GroupBox Grid.Column="0" Header="Fiche article" HorizontalContentAlignment="Stretch">
+              <ScrollViewer x:Name="FicheScroll"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="6"
+                      Width="{Binding ElementName=FicheScroll, Path=ViewportWidth}">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
 
-            <Border Grid.Row="1" Height="12" Background="Transparent"/>
+                  <!-- Actions -->
+                  <StackPanel Orientation="Horizontal" Grid.Row="0">
+                    <Button Content="Nouveau" Click="New_Click"/>
+                    <Button Content="Enregistrer" Click="Save_Click"/>
+                    <Button Content="Supprimer" Click="Delete_Click"/>
+                    <Button Content="Recharger" Click="Reload_Click"/>
+                  </StackPanel>
 
-            <!-- Formulaire -->
-            <Border Grid.Row="2" Style="{StaticResource Card}" HorizontalAlignment="Stretch">
-              <Grid HorizontalAlignment="Stretch">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="220"/>
-                  <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                  <Border Grid.Row="1" Height="12" Background="Transparent"/>
 
-                <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                  <!-- Formulaire -->
+                  <Border Grid.Row="2" Style="{StaticResource Card}" HorizontalAlignment="Stretch">
+                    <Grid HorizontalAlignment="Stretch">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
 
-                <Label Grid.Row="0" Grid.Column="0" Content="Code"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Selected.Code, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                      </Grid.RowDefinitions>
 
-                <Label Grid.Row="1" Grid.Column="0" Content="Libelle"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Selected.Libelle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="0" Grid.Column="0" Content="Code"/>
+                      <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Selected.Code, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="2" Grid.Column="0" Content="Type"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Selected.Type, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="1" Grid.Column="0" Content="Libelle"/>
+                      <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Selected.Libelle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="3" Grid.Column="0" Content="Prix achat HT"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Selected.PrixAchatHT, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="2" Grid.Column="0" Content="Type"/>
+                      <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+								Style="{StaticResource ComboBox.PopupDark}"
+								ItemContainerStyle="{StaticResource ComboBoxItem.Dark}"
+                                ItemsSource="{Binding ArticleKinds}"
+                                SelectedItem="{Binding Selected.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <Label Grid.Row="4" Grid.Column="0" Content="Prix vente HT"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Selected.PrixVenteHT, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="3" Grid.Column="0" Content="Prix achat HT"/>
+                      <TextBox Grid.Row="3" Grid.Column="1"
+                               Text="{Binding Selected.PrixAchatHT, UpdateSourceTrigger=PropertyChanged}"
+                               TextChanged="Recalc_OnChanged" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="5" Grid.Column="0" Content="TVA"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Selected.TVA, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="4" Grid.Column="0" Content="Prix vente HT"/>
+                      <TextBox Grid.Row="4" Grid.Column="1"
+                               Text="{Binding Selected.PrixVenteHT, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="6" Grid.Column="0" Content="Stock actuel"/>
-                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Selected.StockActuel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="5" Grid.Column="0" Content="TVA"/>
+                      <ComboBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                                ItemsSource="{Binding TvaRates}"
+								Style="{StaticResource ComboBox.PopupDark}"
+								ItemContainerStyle="{StaticResource ComboBoxItem.Dark}"
+                                SelectedValuePath="Id" DisplayMemberPath="Name"
+                                SelectedValue="{Binding Selected.TvaRateId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                SelectionChanged="Recalc_OnChanged"/>
 
-                <Label Grid.Row="7" Grid.Column="0" Content="Seuil alerte"/>
-                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Selected.SeuilAlerte, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="6" Grid.Column="0" Content="Stock actuel"/>
+                      <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Selected.StockActuel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="8" Grid.Column="0" Content="Actif"/>
-                <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding Selected.Actif, Mode=TwoWay}" Margin="0,4,0,8"/>
+                      <Label Grid.Row="7" Grid.Column="0" Content="Seuil alerte"/>
+                      <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Selected.SeuilAlerte, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
-                <Label Grid.Row="9" Grid.Column="0" Content="Derniere MAJ"/>
-                <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding Selected.DerniereMAJ, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                      <Label Grid.Row="8" Grid.Column="0" Content="Actif"/>
+                      <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding Selected.Actif, Mode=TwoWay}" Margin="0,4,0,8"/>
 
-                <Label Grid.Row="10" Grid.Column="0" Content="Taux cotisation"/>
-                <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Selected.TauxCotisation, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
-              </Grid>
-            </Border>
+                      <Label Grid.Row="9" Grid.Column="0" Content="Type de cotisation"/>
+                      <ComboBox Grid.Row="9" Grid.Column="1" Margin="0,0,0,8"
+                                ItemsSource="{Binding CotisationTypes}"
+								Style="{StaticResource ComboBox.PopupDark}"
+								ItemContainerStyle="{StaticResource ComboBoxItem.Dark}"
+                                SelectedValuePath="Id" DisplayMemberPath="Name"
+                                SelectedValue="{Binding Selected.CotisationTypeId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                SelectionChanged="Recalc_OnChanged"/>
+
+                      <Label Grid.Row="10" Grid.Column="0" Content="Taux cotisation (mémo)"/>
+                      <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Selected.TauxCotisation, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
+                               ToolTip="Mémo interne. Le taux réel vient du type de cotisation choisi."/>
+
+                      <Label Grid.Row="11" Grid.Column="0" Content="Poids unitaire (g)"/>
+                      <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding Selected.PoidsUnitaireGr, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                      <Label Grid.Row="12" Grid.Column="0" Content="Barcode"/>
+                      <StackPanel Grid.Row="12" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBox Width="220" Text="{Binding Selected.Barcode, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Content="Générer" Margin="8,0,0,0" Click="GenerateArticleBarcode_Click"/>
+                      </StackPanel>
+
+                      <!-- Affichage calculé -->
+                      <Label Grid.Row="13" Grid.Column="0" Content="Prix conseillé (HT / TTC)"/>
+                      <TextBlock Grid.Row="13" Grid.Column="1" Margin="0,0,0,8"
+                                 Text="{Binding SuggestedPriceSummary}"/>
+                    </Grid>
+                  </Border>
+                </Grid>
+              </ScrollViewer>
+            </GroupBox>
+
+            <Border Grid.Column="1" Width="16" Background="Transparent"/>
+
+            <!-- Raccourcis / Réassort -->
+            <GroupBox Grid.Column="2" Header="Stock / Réassort" HorizontalAlignment="Left" MinWidth="320" MaxWidth="420">
+              <StackPanel Margin="6">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                  <Button Content="Réassort (PMP)" Click="Reassort_Click"/>
+                  <Button Content="Actualiser" Margin="8,0,0,0" Click="ReloadReassorts_Click"/>
+                </StackPanel>
+
+                <DataGrid x:Name="GridReassorts" AutoGenerateColumns="False"
+                          ItemsSource="{Binding Reassorts}"
+                          CanUserAddRows="False" CanUserDeleteRows="False"
+                          IsReadOnly="True" Height="260">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date}" Width="*" />
+                    <DataGridTextColumn Header="Fournisseur" Binding="{Binding Fournisseur}" Width="*" />
+                    <DataGridTextColumn Header="Qté" Binding="{Binding Qte}" Width="*" />
+                    <DataGridTextColumn Header="PU Achat" Binding="{Binding PUAchatHT}" Width="*" />
+                  </DataGrid.Columns>
+                </DataGrid>
+              </StackPanel>
+            </GroupBox>
           </Grid>
-        </ScrollViewer>
-      </GroupBox>
+        </TabItem>
 
-      <!-- séparateur -->
-      <Border Grid.Column="1" Width="16" Background="Transparent"/>
+        <!-- ===== Onglet 2 : Déclinaisons ===== -->
+        <TabItem Header="Déclinaisons">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
 
-      <!-- Composition du pack (visuel prêt) -->
-      <GroupBox Grid.Column="2" Header="Composition (si Type = Pack)"
-                HorizontalAlignment="Left" MinWidth="320" MaxWidth="420">
-        <StackPanel Margin="6">
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="Ajouter composant" Click="AddComponent_Click"/>
-            <Button Content="Supprimer sélection" Click="RemoveComponent_Click" Margin="8,0,0,0"/>
-          </StackPanel>
+            <!-- Sélection axes/valeurs -->
+            <GroupBox Grid.Column="0" Header="Axes &amp; valeurs" HorizontalContentAlignment="Stretch">
+              <ScrollViewer x:Name="DecliScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="6" Width="{Binding ElementName=DecliScroll, Path=ViewportWidth}">
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="Ajouter un axe" Click="AddAxis_Click"/>
+                    <Button Content="Supprimer l'axe sélectionné" Margin="8,0,0,0" Click="RemoveAxis_Click"/>
+                    <Button Content="Générer variantes" Margin="8,0,0,0" Click="GenerateVariants_Click"/>
+                  </StackPanel>
 
-          <DataGrid x:Name="GridComponents" AutoGenerateColumns="False"
-                    ItemsSource="{Binding Components}"
-                    CanUserAddRows="False" CanUserDeleteRows="False"
-                    IsReadOnly="True" Height="300">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="Code" Binding="{Binding ComponentCode}" Width="*"/>
-              <DataGridTextColumn Header="Libellé" Binding="{Binding ComponentLibelle}" Width="2*"/>
-              <DataGridTextColumn Header="Qté" Binding="{Binding Qte}" Width="*" />
-            </DataGrid.Columns>
-          </DataGrid>
-          <TextBlock Text="Astuce: pour l’instant, l’ajout se fait par Code (boîte de dialogue). L’éditeur avancé (picker d’articles) viendra après."
-                     TextWrapping="Wrap" Foreground="{StaticResource Subtle}" Margin="0,8,0,0"/>
-        </StackPanel>
-      </GroupBox>
+                  <!-- Liste des axes sélectionnés -->
+                  <ItemsControl ItemsSource="{Binding AxisSelections}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Style="{StaticResource Card}">
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="220"/>
+                              <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                              <TextBlock Text="Axe" Margin="0,0,0,4"/>
+                              <ComboBox ItemsSource="{Binding DataContext.AllOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource ComboBox.PopupDark}"
+										ItemContainerStyle="{StaticResource ComboBoxItem.Dark}"
+										SelectedItem="{Binding SelectedOption, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                              <TextBlock Text="Valeurs" Margin="0,0,0,4"/>
+                              <!-- Liste de cases à cocher (values disponibles pour l'axe) -->
+                              <ItemsControl ItemsSource="{Binding AvailableChoices}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate>
+                                    <CheckBox Content="{Binding Value.Value}" IsChecked="{Binding IsSelected, Mode=TwoWay}" Margin="0,2,12,2"/>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                  </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                              </ItemsControl>
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </ScrollViewer>
+            </GroupBox>
+
+            <Border Grid.Column="1" Width="16" Background="Transparent"/>
+
+            <!-- Variantes -->
+            <GroupBox Grid.Column="2" Header="Variantes" HorizontalContentAlignment="Stretch">
+              <StackPanel Margin="6">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                  <Button Content="Enregistrer les variantes" Click="SaveVariants_Click"/>
+                  <Button Content="Barcode manquants" Margin="8,0,0,0" Click="GenerateMissingBarcodes_Click"/>
+                </StackPanel>
+
+                <DataGrid x:Name="GridVariants" AutoGenerateColumns="False"
+                          ItemsSource="{Binding Variants}"
+                          CanUserAddRows="False" CanUserDeleteRows="False"
+                          IsReadOnly="False" Height="360">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="Code (SKU)" Binding="{Binding Code, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
+                    <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="2*"/>
+                    <DataGridTextColumn Header="PA HT" Binding="{Binding PrixAchatHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTextColumn Header="PV HT" Binding="{Binding PrixVenteHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTextColumn Header="Stock" Binding="{Binding StockActuel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTextColumn Header="Poids (g)" Binding="{Binding PoidsUnitaireGr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridCheckBoxColumn Header="Actif" Binding="{Binding Actif, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+              </StackPanel>
+            </GroupBox>
+          </Grid>
+        </TabItem>
+
+      </TabControl>
     </Grid>
   </Grid>
 </UserControl>
