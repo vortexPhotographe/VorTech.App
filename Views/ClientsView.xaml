@@ -4,6 +4,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
+             HorizontalContentAlignment="Stretch"
+             VerticalContentAlignment="Stretch"
              d:DesignHeight="600" d:DesignWidth="1200">
 
   <!-- Grille externe : gauche fixe, séparateur, zone principale élastique -->
@@ -46,10 +48,13 @@
       </Grid.ColumnDefinitions>
 
       <!-- Fiche client -->
-      <GroupBox Grid.Column="0" Header="Fiche client"
-                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <Grid Margin="6">
+	<GroupBox Grid.Column="0" Header="Fiche client"
+			  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+	  <ScrollViewer x:Name="FicheScroll"
+					VerticalScrollBarVisibility="Auto"
+					HorizontalScrollBarVisibility="Disabled">
+		<Grid Margin="6"
+          Width="{Binding ElementName=FicheScroll, Path=ViewportWidth}">
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
               <RowDefinition Height="12"/>
