@@ -10,76 +10,100 @@ namespace VorTech.App.Views
 {
     public partial class ArticlesView : UserControl
     {
-        private readonly ObservableCollection<Article> _items = new();
+        private ObservableCollection<Article> _items = new();
+        private Article? _current;
 
         public ArticlesView()
         {
             InitializeComponent();
-            List.ItemsSource = _items;
             Reload();
+            New();
         }
 
         private void Reload()
         {
-            _items.Clear();
-            foreach (var a in ArticleService.GetAll()) _items.Add(a);
-            if (_items.Count > 0) List.SelectedIndex = 0; else ClearForm();
+            _items = new ObservableCollection<Article>(ArticleService.GetAll());
+            GridArticles.ItemsSource = _items;
         }
 
-        private void ClearForm()
+        private void New()
         {
-            TbRef.Text   = "";
-            TbLib.Text   = "";
-            TbPA.Text    = "0";
-            TbPV.Text    = "0";
-            TbStock.Text = "0";
+            _current = new Article();
+            BindCurrentToForm();
         }
 
-        private Article? Current()
-            => List.SelectedItem as Article;
-
-        private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void BindCurrentToForm()
         {
-            var a = Current();
-            if (a == null) { ClearForm(); return; }
-            TbRef.Text   = a.Reference;
-            TbLib.Text   = a.Libelle;
-            TbPA.Text    = a.PrixAchatHT.ToString(CultureInfo.InvariantCulture);
-            TbPV.Text    = a.PrixVenteHT.ToString(CultureInfo.InvariantCulture);
-            TbStock.Text = a.StockActuel.ToString(CultureInfo.InvariantCulture);
+            SkuBox.Text   = _current?.Sku ?? "";
+            NameBox.Text  = _current?.Name ?? "";
+            PriceBox.Text = (_current?.PriceHT ?? 0).ToString("0.##", CultureInfo.InvariantCulture);
+            StockBox.Text = (_current?.Stock  ?? 0).ToString("0.##", CultureInfo.InvariantCulture);
         }
 
-        private void New_Click(object sender, RoutedEventArgs e)
+        private bool ReadFormToCurrent(out string error)
         {
-            List.SelectedItem = null;
-            ClearForm();
-            TbRef.Focus();
+            error = "";
+            if (_current == null) _current = new Article();
+
+            _current.Sku  = SkuBox.Text?.Trim()  ?? "";
+            _current.Name = NameBox.Text?.Trim() ?? "";
+
+            if (!double.TryParse(PriceBox.Text?.Replace(',', '.') ?? "0",
+                NumberStyles.Any, CultureInfo.InvariantCulture, out var price))
+            { error = "PU HT invalide"; return false; }
+
+            if (!double.TryParse(StockBox.Text?.Replace(',', '.') ?? "0",
+                NumberStyles.Any, CultureInfo.InvariantCulture, out var stock))
+            { error = "Stock invalide"; return false; }
+
+            _current.PriceHT = price;
+            _current.Stock   = stock;
+            return true;
         }
+
+        private void GridArticles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (GridArticles.SelectedItem is Article a)
+            {
+                _current = new Article
+                {
+                    Id      = a.Id,
+                    Sku     = a.Sku,
+                    Name    = a.Name,
+                    PriceHT = a.PriceHT,
+                    Stock   = a.Stock
+                };
+                BindCurrentToForm();
+            }
+        }
+
+        private void New_Click(object sender, RoutedEventArgs e) => New();
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            var a = Current() ?? new Article();
-            a.Reference    = TbRef.Text?.Trim() ?? "";
-            a.Libelle      = TbLib.Text?.Trim() ?? "";
-            _ = double.TryParse(TbPA.Text,  NumberStyles.Any, CultureInfo.InvariantCulture, out var pa);
-            _ = double.TryParse(TbPV.Text,  NumberStyles.Any, CultureInfo.InvariantCulture, out var pv);
-            _ = int.TryParse(TbStock.Text,  NumberStyles.Any, CultureInfo.InvariantCulture, out var stock);
-            a.PrixAchatHT  = pa;
-            a.PrixVenteHT  = pv;
-            a.StockActuel  = stock;
-
-            ArticleService.Save(a);
+            if (!ReadFormToCurrent(out var err))
+            {
+                MessageBox.Show(err, "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            ArticleService.Save(_current!);
             Reload();
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            var a = Current();
-            if (a == null) return;
-            if (MessageBox.Show($"Supprimer « {a.Libelle} » ?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-                return;
-            ArticleService.Delete(a.Id);
-            Reload();
+            if (_current?.Id > 0)
+            {
+                if (MessageBox.Show("Supprimer cet article ?", "Confirmation",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    ArticleService.Delete(_current.Id);
+                    Reload();
+                    New();
+                }
+            }
         }
+
+        private void Reload_Click(object sender, RoutedEventArgs e) => Reload();
     }
 }

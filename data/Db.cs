@@ -34,12 +34,21 @@ CREATE TABLE IF NOT EXISTS Clients(
 );
 
 CREATE TABLE IF NOT EXISTS Articles(
-  Id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  Sku       TEXT UNIQUE,
-  Name      TEXT    NOT NULL,
-  PriceHT   REAL    NOT NULL DEFAULT 0,
-  Stock     REAL    NOT NULL DEFAULT 0,
-  CreatedAt TEXT    NOT NULL DEFAULT (datetime('now'))
+  Id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  Sku          TEXT UNIQUE,
+  Reference    TEXT GENERATED ALWAYS AS (Sku) VIRTUAL,     -- alias de compatibilité
+  Name         TEXT    NOT NULL,
+  PriceHT      REAL    NOT NULL DEFAULT 0,
+  Price        REAL GENERATED ALWAYS AS (PriceHT) VIRTUAL, -- alias de compatibilité
+  Stock        REAL    NOT NULL DEFAULT 0,
+  CreatedAt    TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS PaymentMethods(
+  Id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name       TEXT  NOT NULL,
+  FixedFee   REAL  DEFAULT 0,
+  PercentFee REAL  DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS Documents(
