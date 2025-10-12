@@ -25,6 +25,8 @@ secrets.json
 # Données locales
 Data/*.db
 Backups/
+Data/*.db-shm
+Data/*.db-wal
 
 # JetBrains / Rider
 .idea/
