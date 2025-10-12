@@ -1,14 +1,64 @@
-- 📘 [Spécification (SPEC)](docs/SPEC.md)
-- ✅ [Décisions actées](docs/DECISIONS.md)
-- 🗺️ [Roadmap / TODO](docs/TODO.md)
+# Module "Articles" — clé en main (WPF .NET + EF Core SQLite)
 
-VorTech.App — WPF .NET 8 (squelette complet)
+## 1) Prérequis (une seule fois)
+Dans le dossier **VorTech.App** :
+```powershell
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet tool install --global dotnet-ef
+```
+Dans votre `App.xaml.cs` (ou bootstrap), enregistrez `AppDbContext` et `ArticleService` via votre conteneur DI habituel (ex. Microsoft.Extensions.DependencyInjection) :
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using VorTech.App.Data;
+using VorTech.App.Services;
 
-Commandes:
-  dotnet build
-  .\bin\Debug\net8.0-windows\win-x64\VorTech.App.exe
+var sc = new ServiceCollection();
+sc.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=app.db"));
+sc.AddScoped<IArticleService, ArticleService>();
+var sp = sc.BuildServiceProvider();
+// Gardez sp accessible, ou exposez service via Application.Current.Resources["ArticleService"]
+```
 
-Publication:
-  dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=false -o .\publish
+> Variante XAML (sans DI) : Ajoutez dans `App.xaml` :
+```xml
+<Application ... xmlns:svc="clr-namespace:VorTech.App.Services"
+               xmlns:data="clr-namespace:VorTech.App.Data">
+  <Application.Resources>
+    <!-- Pour le constructeur par défaut de ArticlesView, fournissez ArticleService -->
+    <svc:ArticleService x:Key="ArticleService">
+      <!-- Nécessite un AppDbContext créé en code-behind si pas de DI -->
+    </svc:ArticleService>
+  </Application.Resources>
+</Application>
+```
 
-Le fichier Data\app.db est créé au premier lancement, avec des données démo.
+## 2) Copier-coller les fichiers
+- `Models/Article.cs`
+- `Data/AppDbContext.cs`
+- `Services/IArticleService.cs`
+- `Services/ArticleService.cs`
+- `ViewModels/ArticlesViewModel.cs`
+- `Views/ArticlesView.xaml`
+- `Views/ArticlesView.xaml.cs`
+dans vos dossiers correspondants de **VorTech.App** (respectez les namespaces).
+
+## 3) Générer la base (option A – SQL direct, **immédiat**)
+Exécutez le script SQL suivant sur votre base SQLite :
+`SQL/reset_articles_sqlite.sql`
+
+## 4) Générer la base (option B – EF Core Migrations)
+```powershell
+dotnet ef migrations add InitArticles
+dotnet ef database update
+```
+
+## 5) Afficher l'écran
+Ouvrez `ArticlesView` dans votre shell (Window/Page) :
+```xml
+<views:ArticlesView />
+```
+
+**C'est tout.** Vous avez : CRUD complet, recherche, liste + formulaire. 
+```
