@@ -1,3 +1,4 @@
+// Views/SettingsView.xaml.cs
 using System.Windows;
 using System.Windows.Controls;
 using VorTech.App.Models;
@@ -12,15 +13,18 @@ namespace VorTech.App.Views
         public SettingsView()
         {
             InitializeComponent();
-            _config = ConfigService.Load();
+            _config = ConfigService.Load();   // ← ok, méthode fournie ci-dessus
             DataContext = _config;
         }
 
         private void SaveSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Force la validation des cellules en édition (DataGrid)
-            if (GridPay.CommitEdit(DataGridEditingUnit.Cell, true))
-                GridPay.CommitEdit(DataGridEditingUnit.Row, true);
+            // Si tu as un DataGrid nommé GridPay en édition : sécurise les commits
+            if (FindName("GridPay") is DataGrid dg)
+            {
+                if (dg.CommitEdit(DataGridEditingUnit.Cell, true))
+                    dg.CommitEdit(DataGridEditingUnit.Row, true);
+            }
 
             ConfigService.Save(_config);
             MessageBox.Show("Réglages enregistrés.", "VorTech.App",

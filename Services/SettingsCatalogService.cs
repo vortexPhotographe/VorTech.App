@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Data.Sqlite;
+using System.Linq;
 using VorTech.App.Models;
 
 namespace VorTech.App.Services
@@ -41,6 +41,18 @@ CREATE TABLE IF NOT EXISTS TvaRates(
                 cmd.ExecuteNonQuery();
             }
 
+            // Categories
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS Categories(
+  Id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name  TEXT NOT NULL,
+  Actif INTEGER DEFAULT 1
+);";
+                cmd.ExecuteNonQuery();
+            }
+
             // Seed TVA si vide
             using (var check = cn.CreateCommand())
             {
@@ -63,6 +75,19 @@ CREATE TABLE IF NOT EXISTS TvaRates(
                     ins("Taux intermédiaire", 10.0, 0, null);
                     ins("Taux réduit", 5.5, 0, null);
                     ins("Taux particulier", 2.1, 0, null);
+                }
+            }
+
+            // Seed Catégorie par défaut si vide
+            using (var check = cn.CreateCommand())
+            {
+                check.CommandText = "SELECT COUNT(*) FROM Categories;";
+                var count = Convert.ToInt32(check.ExecuteScalar() ?? 0);
+                if (count == 0)
+                {
+                    using var ins = cn.CreateCommand();
+                    ins.CommandText = "INSERT INTO Categories(Name, Actif) VALUES('Général',1);";
+                    ins.ExecuteNonQuery();
                 }
             }
         }
@@ -88,6 +113,9 @@ CREATE TABLE IF NOT EXISTS TvaRates(
             return list;
         }
 
+        // Alias pour coller à l'usage actuel
+        public List<CotisationType> GetCotisationRates() => GetCotisationTypes();
+
         public List<TvaRate> GetTvaRates()
         {
             var list = new List<TvaRate>();
@@ -107,6 +135,34 @@ CREATE TABLE IF NOT EXISTS TvaRates(
                 });
             }
             return list;
+        }
+
+        public List<Categorie> GetCategories()
+        {
+            var list = new List<Categorie>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "SELECT Id, Name, Actif FROM Categories ORDER BY Name;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new Categorie
+                {
+                    Id = rd.GetInt32(0),
+                    Name = rd.IsDBNull(1) ? "" : rd.GetString(1),
+                    Actif = !rd.IsDBNull(2) && rd.GetInt32(2) != 0
+                });
+            }
+            return list;
+        }
+
+        public decimal GetRateById(int? id)
+        {
+            if (id == null) return 0m;
+            var tva = GetTvaRates().FirstOrDefault(x => x.Id == id)?.Rate ?? 0.0;
+            var cot = GetCotisationTypes().FirstOrDefault(x => x.Id == id)?.Rate ?? 0.0;
+            var r = tva != 0.0 ? tva : cot;
+            return (decimal)r;
         }
     }
 }

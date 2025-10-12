@@ -1,55 +1,44 @@
+// Services/ConfigService.cs
+using System;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using VorTech.App.Models;
+using VorTech.App.Models; // <-- utilise le modèle unique
 
 namespace VorTech.App.Services
 {
     public static class ConfigService
     {
-        // Si tu as déjà un Paths.ConfigJson garde-le; sinon mets un chemin relatif
-        private static string ConfigPath => Paths.SettingsFile;
+        private static readonly string ConfigPath = Path.Combine(Paths.DataDir, "config.json");
+        private static AppConfig? _cache;
 
-        private static readonly JsonSerializerOptions JsonOpts = new()
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
+        // Compat: certains fichiers appellent Load(), d'autres Get()
+        public static AppConfig Load() => Get();
 
-        public static AppConfig Load()
+        public static AppConfig Get()
         {
-            try
+            if (_cache != null) return _cache;
+
+            Directory.CreateDirectory(Paths.DataDir);
+
+            if (!File.Exists(ConfigPath))
             {
-                if (File.Exists(ConfigPath))
-                {
-                    var json = File.ReadAllText(ConfigPath);
-                    var cfg = JsonSerializer.Deserialize<AppConfig>(json, JsonOpts);
-                    return cfg ?? new AppConfig();
-                }
+                var def = new AppConfig();   // modèle de Models/AppConfig.cs
+                Save(def);
+                _cache = def;
+                return def;
             }
-            catch { /* log si tu veux */ }
 
-            // Valeurs par défaut
-            return new AppConfig
-			{
-				PaymentMethods =
-				{
-					new Models.PaymentMethod { Name = "CB",       FixedFee = 0.25, PercentFee = 1.5 },
-					new Models.PaymentMethod { Name = "Espèces",  FixedFee = 0,    PercentFee = 0   },
-					new Models.PaymentMethod { Name = "PayPal",   FixedFee = 0.35, PercentFee = 2.9 },
-					new Models.PaymentMethod { Name = "Virement", FixedFee = 0,    PercentFee = 0   }
-				}
-}			;
+            var json = File.ReadAllText(ConfigPath);
+            _cache = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+            return _cache!;
         }
 
-        public static void Save(AppConfig config)
+        public static void Save(AppConfig cfg)
         {
-            var dir = Path.GetDirectoryName(ConfigPath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var json = JsonSerializer.Serialize(config, JsonOpts);
+            Directory.CreateDirectory(Paths.DataDir);
+            var json = JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(ConfigPath, json);
+            _cache = cfg;
         }
     }
 }

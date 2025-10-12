@@ -1,79 +1,169 @@
 <UserControl x:Class="VorTech.App.Views.ArticlesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Grid Margin="12">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="8"/>
-      <RowDefinition Height="*"/>
-    </Grid.RowDefinitions>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
 
-    <!-- Barre d'actions -->
-    <StackPanel Orientation="Horizontal" Grid.Row="0">
-      <Button Content="Nouveau"    Click="New_Click"/>
-      <Button Content="Enregistrer" Click="Save_Click"   Margin="8,0,0,0"/>
-      <Button Content="Supprimer"   Click="Delete_Click" Margin="8,0,0,0"/>
-      <Button Content="Recharger"   Click="Reload_Click" Margin="8,0,0,0"/>
-    </StackPanel>
+    <!-- Grille principale : 2 colonnes (liste / fiche) séparées par un espace fixe -->
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Barre d’actions -->
+            <RowDefinition Height="*"/>      <!-- Contenu -->
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>    <!-- Liste -->
+            <ColumnDefinition Width="12"/>   <!-- ESPACE -->
+            <ColumnDefinition Width="1.2*"/> <!-- Fiche -->
+        </Grid.ColumnDefinitions>
 
-    <Border Grid.Row="1" Height="8" Background="Transparent"/>
+        <!-- Barre d’actions -->
+        <StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" Margin="0,0,0,8">
+            <Button Content="Nouveau"     Click="BtnNew_Click"     Margin="0,0,8,0"/>
+            <Button Content="Enregistrer" Click="BtnSave_Click"    Margin="0,0,8,0"/>
+            <Button Content="Supprimer"   Click="BtnDelete_Click"  Margin="0,0,8,0"/>
+            <Button Content="Recharger"   Click="BtnReload_Click"/>
+        </StackPanel>
 
-    <!-- Corps -->
-    <Grid Grid.Row="2">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="12"/>
-        <ColumnDefinition Width="2*"/>
-      </Grid.ColumnDefinitions>
+        <!-- Panneau gauche : Liste -->
+        <GroupBox Header="Articles" Grid.Row="1" Grid.Column="0">
+            <DataGrid x:Name="GridArticles"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      SelectionChanged="GridArticles_SelectionChanged"
+                      Margin="8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Id"       Binding="{Binding Id}"        Width="60"/>
+                    <DataGridTextColumn Header="Code"     Binding="{Binding Code}"      Width="*"/>
+                    <DataGridTextColumn Header="Libellé"  Binding="{Binding Libelle}"   Width="2*"/>
+                    <DataGridTextColumn Header="PU HT"    Binding="{Binding PrixVenteHT}" Width="100"/>
+                    <DataGridTextColumn Header="Stock"    Binding="{Binding StockActuel}" Width="80"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
 
-      <!-- Liste -->
-      <GroupBox Grid.Column="0" Header="Articles">
-        <DataGrid x:Name="GridArticles"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  SelectionMode="Single"
-                  SelectionChanged="GridArticles_SelectionChanged">
-          <DataGrid.Columns>
-            <DataGridTextColumn Header="Id"      Binding="{Binding Id}"      Width="60"/>
-            <DataGridTextColumn Header="SKU"     Binding="{Binding Sku}"     Width="*"/>
-            <DataGridTextColumn Header="Nom"     Binding="{Binding Name}"    Width="2*"/>
-            <DataGridTextColumn Header="PU HT"   Binding="{Binding PriceHT}" Width="*" />
-            <DataGridTextColumn Header="Stock"   Binding="{Binding Stock}"   Width="*" />
-          </DataGrid.Columns>
-        </DataGrid>
-      </GroupBox>
+        <!-- Panneau droit : Fiche + onglets -->
+        <GroupBox Header="Fiche article" Grid.Row="1" Grid.Column="2">
+            <TabControl Margin="8">
+                <!-- Onglet 1 : Fiche -->
+                <TabItem Header="Fiche">
+                    <!-- Grille du formulaire : 2 colonnes logiques séparées par un espace -->
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>  <!-- libellés -->
+                            <ColumnDefinition Width="*"/>    <!-- champs -->
+                            <ColumnDefinition Width="20"/>   <!-- ESPACE -->
+                            <ColumnDefinition Width="160"/>  <!-- libellés -->
+                            <ColumnDefinition Width="*"/>    <!-- champs -->
+                        </Grid.ColumnDefinitions>
 
-      <Border Grid.Column="1" Width="12" Background="Transparent"/>
+                        <!-- Rangée 0 -->
+                        <TextBlock Grid.Column="0" Text="Code" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="CodeBox" Grid.Column="1" Margin="0,0,0,8"/>
 
-      <!-- Formulaire -->
-      <GroupBox Grid.Column="2" Header="Fiche article">
-        <Grid Margin="8">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="160"/>
-            <ColumnDefinition Width="*"/>
-          </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Libellé" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="LibelleBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"/>
 
-          <Label Grid.Row="0" Grid.Column="0" Content="SKU"/>
-          <TextBox x:Name="SkuBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Type" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                            <RadioButton x:Name="TypeArticleRadio" Content="Article" IsChecked="True" Checked="TypeRadio_Checked" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="TypePackRadio"    Content="Pack"                      Checked="TypeRadio_Checked"/>
+                        </StackPanel>
 
-          <Label Grid.Row="1" Grid.Column="0" Content="Nom"/>
-          <TextBox x:Name="NameBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Catégorie" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <ComboBox  x:Name="CategorieBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                                   DisplayMemberPath="Name" SelectedValuePath="Id"/>
 
-          <Label Grid.Row="2" Grid.Column="0" Content="PU HT"/>
-          <TextBox x:Name="PriceBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Prix achat HT" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="PrixAchatBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"/>
 
-          <Label Grid.Row="3" Grid.Column="0" Content="Stock"/>
-          <TextBox x:Name="StockBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"/>
-        </Grid>
-      </GroupBox>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Prix vente HT" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="PrixVenteBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="TVA" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <ComboBox  x:Name="TvaBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+                                   DisplayMemberPath="Name" SelectedValuePath="Id" IsEnabled="False"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Cotisation" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox  x:Name="CotisationBox" Grid.Row="7" Grid.Column="1"
+                                   DisplayMemberPath="Name" SelectedValuePath="Id"/>
+
+                        <!-- Colonne droite -->
+                        <TextBlock Grid.Column="3" Text="Stock actuel" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="StockBox" Grid.Column="4" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="3" Text="Seuil alerte" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="SeuilBox" Grid.Row="1" Grid.Column="4" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="3" Text="Poids (g)" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox   x:Name="PoidsBox" Grid.Row="2" Grid.Column="4" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="3" Text="Actif" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <CheckBox  x:Name="ActifBox" Grid.Row="3" Grid.Column="4" VerticalAlignment="Center" Margin="0,4,0,8"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="3" Text="Dernière MAJ" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBlock x:Name="DerniereMajLabel" Grid.Row="4" Grid.Column="4" Margin="0,0,0,8"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="3" Text="Code-barres" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <StackPanel Grid.Row="5" Grid.Column="4" Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBox x:Name="BarcodeBox" Width="180" Margin="0,0,8,0"/>
+                            <Button Content="Générer" Click="BtnGenBarcode_Click"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="6" Grid.Column="3" Text="Prix conseillé HT" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBlock x:Name="PrixConseilleLabel" Grid.Row="6" Grid.Column="4" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                        <StackPanel Grid.Row="7" Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal">
+                            <Button Content="Ajouter image" Click="BtnAddImage_Click" Margin="0,0,8,0"/>
+                            <TextBlock Text="(0..4 images)"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <!-- Onglet 2 : Déclinaisons & Pack -->
+                <TabItem Header="Déclinaisons &amp; Pack">
+                    <!-- Deux zones côte à côte séparées par un espace -->
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>  <!-- ESPACE -->
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Déclinaisons -->
+                        <GroupBox Header="Déclinaisons" Grid.Column="0">
+                            <DockPanel LastChildFill="True" Margin="8">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <Button Content="Ajouter"  Click="BtnAddVariant_Click"    Margin="0,0,6,0"/>
+                                    <Button Content="Supprimer" Click="BtnRemoveVariant_Click"/>
+                                </StackPanel>
+                                <DataGrid x:Name="GridVariants" AutoGenerateColumns="False" IsReadOnly="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"          Width="2*"/>
+                                        <DataGridTextColumn Header="PU HT"       Binding="{Binding PrixVenteHT}"  Width="*"/>
+                                        <DataGridTextColumn Header="Code-barres" Binding="{Binding CodeBarres}"   Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </GroupBox>
+
+                        <!-- Pack -->
+                        <GroupBox Header="Pack (si Type=Pack)" Grid.Column="2">
+                            <DockPanel LastChildFill="True" Margin="8">
+                                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8"
+                                           Text="Sélectionne les articles composants et leur quantité."/>
+                                <DataGrid x:Name="GridPack" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="ArticleId" Binding="{Binding ArticleItemId}" Width="*"/>
+                                        <DataGridTextColumn Header="Quantité"  Binding="{Binding Quantite}"      Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </GroupBox>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </GroupBox>
     </Grid>
-  </Grid>
 </UserControl>

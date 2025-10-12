@@ -4,8 +4,7 @@ namespace VorTech.App.Models
     {
         public int Id { get; set; }
         public int ArticleId { get; set; }
-        public string RelPath { get; set; } = "";    // ex: images/articles/{ArticleId}/photo1.jpg (relatif)
-        public string? Caption { get; set; }
-        public int Order { get; set; } = 0;
+        public int Ordre { get; set; }           // 1..4
+        public string Path { get; set; } = "";   // relatif : Assets/Images/Articles/{code}/img{ordre}.jpg
     }
 }
