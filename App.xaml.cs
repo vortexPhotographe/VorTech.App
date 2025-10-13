@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Threading;
+using VorTech.App.Services;
 
 namespace VorTech.App
 {
@@ -11,6 +12,8 @@ namespace VorTech.App
             // Affiche toute exception non gérée (XAML/Binding/etc.)
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            Logger.Init();                       // <-- IMPORTANT
+            Logger.Info("=== APP START ===");
             base.OnStartup(e);
         }
 

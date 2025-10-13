@@ -4,145 +4,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             Background="Transparent">
-
-    <!-- RESSOURCES LOCALES : pas de StaticResource custom -->
-    <UserControl.Resources>
-        <!-- brosses réutilisées localement (utilise les clés du thème s'il y en a, sinon valeurs par défaut safe) -->
-        <SolidColorBrush x:Key="R.Panel"     Color="#26282C"/>
-        <SolidColorBrush x:Key="R.Field"     Color="#2F3136"/>
-        <SolidColorBrush x:Key="R.Border"    Color="#3A3C41"/>
-        <SolidColorBrush x:Key="R.HeaderBg"  Color="#33363B"/>
-        <SolidColorBrush x:Key="R.Fore"      Color="#F2F2F2"/>
-        <SolidColorBrush x:Key="R.Subtle"    Color="#B7B7B7"/>
-        <SolidColorBrush x:Key="R.Select"    Color="#3B73D1"/>
-
-        <!-- TabControl sombre (implicite, aucune clé) -->
-        <Style TargetType="TabControl">
-            <Setter Property="Background" Value="{StaticResource R.Panel}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource R.Border}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabControl">
-                        <DockPanel LastChildFill="True" Background="{TemplateBinding Background}">
-                            <TabPanel DockPanel.Dock="Top" Background="{StaticResource R.HeaderBg}" IsItemsHost="True"/>
-                            <Border Background="{StaticResource R.Panel}" BorderBrush="{StaticResource R.Border}"
-                                    BorderThickness="1" Margin="0,-1,0,0">
-                                <ContentPresenter ContentSource="SelectedContent"/>
-                            </Border>
-                        </DockPanel>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="{StaticResource R.Fore}"/>
-            <Setter Property="Background" Value="{StaticResource R.HeaderBg}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource R.Border}"/>
-            <Setter Property="Margin" Value="2,2,2,0"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1" CornerRadius="4,4,0,0"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background"  Value="{StaticResource R.Panel}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource R.Select}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2A2D33"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ComboBox sombre implicite avec template complet -->
-        <Style TargetType="ComboBox">
-            <Setter Property="Foreground"  Value="{StaticResource R.Fore}"/>
-            <Setter Property="Background"  Value="{StaticResource R.Field}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource R.Border}"/>
-            <Setter Property="Padding"     Value="6,4"/>
-            <Setter Property="MinHeight"   Value="28"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton x:Name="ToggleButton"
-                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
-                                          Focusable="False"
-                                          Background="{TemplateBinding Background}"
-                                          BorderBrush="{TemplateBinding BorderBrush}"
-                                          BorderThickness="{TemplateBinding BorderThickness}"/>
-                            <!-- IMPORTANT : SelectionBoxItem pour afficher la valeur sélectionnée -->
-                            <ContentPresenter x:Name="ContentSite"
-                                              Margin="6,4,26,4"
-                                              HorizontalAlignment="Left" VerticalAlignment="Center"
-                                              Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
-                            <Popup x:Name="Popup"
-                                   Placement="Bottom"
-                                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   AllowsTransparency="True"
-                                   Focusable="False"
-                                   PopupAnimation="Slide">
-                                <Border Background="{StaticResource R.Panel}"
-                                        BorderBrush="{StaticResource R.Border}"
-                                        BorderThickness="1" SnapsToDevicePixels="True">
-                                    <ScrollViewer CanContentScroll="True">
-                                        <ItemsPresenter/>
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="{StaticResource R.Fore}"/>
-            <Setter Property="Background" Value="{StaticResource R.Panel}"/>
-            <Setter Property="Padding"    Value="6,3"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{StaticResource R.Border}"
-                                BorderThickness="0,0,0,1"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#34373d"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource R.Select}"/>
-                                <Setter Property="Foreground" Value="{StaticResource R.Fore}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
-
+             Background="Transparent"
+             Loaded="UserControl_Loaded">
     <Grid Margin="8" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -150,34 +13,80 @@
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8" Background="Transparent">
-            <Button x:Name="BtnNew"       Content="Nouveau"     Click="BtnNew_Click"       Margin="0,0,8,0"/>
-            <Button x:Name="BtnSave"      Content="Enregistrer" Click="BtnSave_Click"      Margin="0,0,8,0"/>
-            <Button x:Name="BtnDelete"    Content="Supprimer"   Click="BtnDelete_Click"    Margin="0,0,8,0"/>
-            <Button x:Name="BtnReload"    Content="Recharger"   Click="BtnReload_Click"/>
-        </StackPanel>
+        <!-- Toolbar + statut -->
+        <Grid Grid.Row="0" Margin="0,0,0,8" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Boutons -->
+            <StackPanel Orientation="Horizontal" Background="Transparent">
+                <Button x:Name="BtnNew"       Content="Nouveau"     Click="BtnNew_Click"       Margin="0,0,8,0"/>
+                <Button x:Name="BtnSave"      Content="Enregistrer" Click="BtnSave_Click"      Margin="0,0,8,0"/>
+                <Button x:Name="BtnDelete"    Content="Supprimer"   Click="BtnDelete_Click"    Margin="0,0,8,0"/>
+                <Button x:Name="BtnReload"    Content="Recharger"   Click="BtnReload_Click"/>
+            </StackPanel>
+
+            <!-- Statut OK -->
+            <Border Grid.Column="2"
+          x:Name="StatusPanelOk"
+          Visibility="Collapsed"
+          Padding="10,6"
+          CornerRadius="4"
+          Background="{StaticResource HeaderBg}"
+          BorderBrush="{StaticResource Border}"
+          BorderThickness="1"
+          Margin="8,0,0,0">
+                <StackPanel Orientation="Horizontal" Background="Transparent">
+                    <TextBlock x:Name="StatusOkText"
+                 Foreground="{StaticResource Fore}"
+                 FontWeight="SemiBold"
+                 Text="Enregistré ✓"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Statut Erreur -->
+            <Border Grid.Column="2"
+          x:Name="StatusPanelErr"
+          Visibility="Collapsed"
+          Padding="10,6"
+          CornerRadius="4"
+          Background="{StaticResource HeaderBg}"
+          BorderBrush="{StaticResource Accent}"
+          BorderThickness="1"
+          Margin="8,0,0,0">
+                <StackPanel Orientation="Horizontal" Background="Transparent">
+                    <TextBlock x:Name="StatusErrText"
+                 Foreground="{StaticResource Accent}"
+                 FontWeight="SemiBold"
+                 Text="Erreur"/>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Corps -->
         <Grid Grid.Row="1" Background="Transparent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="2.2*" />
+                <ColumnDefinition Width="2.8*" />
             </Grid.ColumnDefinitions>
 
             <!-- Liste Articles -->
             <GroupBox Header="Articles" Grid.Column="0"
-                      Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
-                      SnapsToDevicePixels="True">
+                Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
+                SnapsToDevicePixels="True">
                 <Grid Background="Transparent">
                     <DataGrid x:Name="GridArticles"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              SelectionChanged="GridArticles_SelectionChanged"
-                              Margin="0"
-                              Background="Transparent"
-                              BorderThickness="0">
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    SelectionMode="Single"
+                    SelectionChanged="GridArticles_SelectionChanged"
+                    Margin="0"
+                    Background="Transparent"
+                    BorderThickness="0">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Id"      Binding="{Binding Id}"          Width="60"/>
                             <DataGridTextColumn Header="Code"    Binding="{Binding Code}"        Width="*"/>
@@ -191,120 +100,159 @@
 
             <!-- Fiche article -->
             <GroupBox Grid.Column="2" Header="Fiche article"
-                      Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
-                      SnapsToDevicePixels="True">
+                  Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
+                  SnapsToDevicePixels="True"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"> 
                 <Grid Margin="0" Background="Transparent">
-                    <TabControl Padding="0" Margin="0" BorderThickness="0">
-                        <!-- Onglet 1 -->
-                        <TabItem Header="Fiche">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          Background="Transparent" Padding="0" Margin="0">
-                                <Grid Margin="8" Background="Transparent">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2*" />
-                                        <ColumnDefinition Width="20"/>
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
+                    <TabControl Padding="0" Margin="0" Background="Transparent" BorderThickness="0">
+                        <TabControl.Resources>
+                            <Style TargetType="TabItem">
+                                <Setter Property="Foreground" Value="{StaticResource Fore}"/>
+                                <Setter Property="Background" Value="{StaticResource Panel}"/>
+                                <Setter Property="Padding" Value="12,6"/>
+                                <Setter Property="Margin" Value="0,0,6,0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TabItem">
+                                            <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource Border}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter ContentSource="Header"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Panel}"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource Fore}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Opacity" Value="0.6"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TabControl.Resources>
+                        <!-- Onglet 1 : Fiche -->
+                        <TabItem Header="Fiche" Background="Transparent" BorderThickness="0">
+						  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="Transparent" Padding="0" Margin="0">
+							<!-- SharedSizeScope pour aligner les colonnes gauche/droite -->
+							<Grid Margin="12" Background="Transparent" Grid.IsSharedSizeScope="True">
+							  <Grid.ColumnDefinitions>
+								<!-- Forme sur 2 colonnes: libellé/champ | libellé/champ | filler | panneau images -->
+								<ColumnDefinition Width="Auto"  SharedSizeGroup="lbl"/>
+								<ColumnDefinition Width="260"  SharedSizeGroup="fld"/>
+								<ColumnDefinition Width="24"/>
+								<ColumnDefinition Width="Auto"  SharedSizeGroup="lbl"/>
+								<ColumnDefinition Width="260"  SharedSizeGroup="fld"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="280"/>
+							  </Grid.ColumnDefinitions>
 
-                                    <!-- Formulaire -->
-                                    <Grid Grid.Column="0" Background="Transparent">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+							  <!-- lignes du formulaire -->
+							  <Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							  </Grid.RowDefinitions>
 
-                                        <!-- Code / Libellé -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="0" Background="Transparent">
-                                            <Label Content="Code" Width="110" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="CodeBox" Width="200" />
-                                            <Button Content="Générer EAN-13" Margin="8,0,0,0" Click="BtnGenBarcode_Click"/>
-                                        </StackPanel>
+							  <!-- Colonne IMAGES (droite) -->
+							  <GroupBox Grid.Column="6" Grid.RowSpan="10" Header="Images (0..4)"
+										Background="Transparent" Padding="8" Margin="0"
+										BorderThickness="1">
+								<StackPanel Background="Transparent">
+								  <Button Content="Ajouter image" Click="BtnAddImage_Click" />
+								</StackPanel>
+							  </GroupBox>
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="1" Background="Transparent">
-                                            <Label Content="Libellé" Width="110" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="LibelleBox" Width="360" />
-                                        </StackPanel>
+							  <!-- Lignes G/D (espacement vertical uniforme via Margin Top = 6) -->
 
-                                        <!-- Type -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="2" Background="Transparent">
-                                            <Label Content="Type" Width="110" VerticalAlignment="Center"/>
-                                            <RadioButton x:Name="TypeArticleRadio" Content="Article" GroupName="TypeA" Checked="TypeRadio_Checked" Margin="0,0,12,0"/>
-                                            <RadioButton x:Name="TypePackRadio"    Content="Pack"    GroupName="TypeA" Checked="TypeRadio_Checked"/>
-                                        </StackPanel>
+							  <!-- Code -->
+							  <Label Grid.Row="0" Grid.Column="0" Content="Code" VerticalAlignment="Center" Margin="0,0,8,0"/>
+							  <TextBox x:Name="CodeBox" Grid.Row="0" Grid.Column="1" MinHeight="28"/>
+							  <Label Grid.Row="0" Grid.Column="3" Content="" /> <!-- vide pour garder la grille propre -->
 
-                                        <!-- Catégorie / TVA / Cotisation -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="3" Background="Transparent">
-                                            <Label Content="Catégorie" Width="110" VerticalAlignment="Center"/>
-                                            <ComboBox x:Name="CategorieBox" Width="240" DisplayMemberPath="Name" SelectedValuePath="Id"/>
-                                        </StackPanel>
+							  <!-- Libellé (champ large) -->
+							  <Label Grid.Row="1" Grid.Column="0" Content="Libellé" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="LibelleBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" MinHeight="28" Margin="0,6,0,0"/>
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="4" Background="Transparent">
-                                            <Label Content="TVA" Width="110" VerticalAlignment="Center"/>
-                                            <ComboBox x:Name="TvaBox" Width="160" DisplayMemberPath="Name" SelectedValuePath="Id" IsEnabled="False"/>
-                                            <Label Content="Cotisation" Width="110" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                                            <ComboBox x:Name="CotisationBox" Width="160" DisplayMemberPath="Name" SelectedValuePath="Id"/>
-                                        </StackPanel>
+							  <!-- Type -->
+							  <Label Grid.Row="2" Grid.Column="0" Content="Type" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,6,0,0">
+								<RadioButton x:Name="TypeArticleRadio" Content="Article" GroupName="TypeA" Checked="TypeRadio_Checked" Margin="0,0,12,0"/>
+								<RadioButton x:Name="TypePackRadio"    Content="Pack"    GroupName="TypeA" Checked="TypeRadio_Checked"/>
+							  </StackPanel>
 
-                                        <!-- Prix -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="5" Background="Transparent">
-                                            <Label Content="Prix achat HT" Width="110" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="PrixAchatBox" Width="120"/>
-                                            <Label Content="Prix vente HT" Width="120" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="PrixVenteBox" Width="120"/>
-                                        </StackPanel>
+							  <!-- Catégorie / Cotisation -->
+							  <Label Grid.Row="3" Grid.Column="0" Content="Catégorie" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <ComboBox x:Name="CategorieBox" Grid.Row="3" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"
+										Style="{StaticResource ComboBox.Dark.Flat}"
+										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
+										DisplayMemberPath="Name" SelectedValuePath="Id"/>
+							  <Label Grid.Row="3" Grid.Column="3" Content="Cotisation" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <ComboBox x:Name="CotisationBox" Grid.Row="3" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"
+										Style="{StaticResource ComboBox.Dark.Flat}"
+										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
+										DisplayMemberPath="Name" SelectedValuePath="Id"
+										SelectionChanged="CotisationBox_SelectionChanged"/>
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="6" Background="Transparent">
-                                            <Label Content="Prix conseillé HT" Width="110" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="PrixConseilleLabel" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        </StackPanel>
+							  <!-- TVA / Prix vente HT -->
+							  <Label Grid.Row="4" Grid.Column="0" Content="TVA" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <ComboBox x:Name="TvaBox" Grid.Row="4" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"
+										IsEnabled="False"
+										Style="{StaticResource ComboBox.Dark.Flat}"
+										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
+										DisplayMemberPath="Name" SelectedValuePath="Id"
+										SelectionChanged="TvaBox_SelectionChanged"/>
+							  <Label Grid.Row="4" Grid.Column="3" Content="Prix vente HT" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="PrixVenteBox" Grid.Row="4" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
 
-                                        <!-- Stock / Seuil / Poids -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="7" Background="Transparent">
-                                            <Label Content="Stock actuel" Width="110" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="StockBox" Width="100"/>
-                                            <Label Content="Seuil alerte" Width="110" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="SeuilBox" Width="100"/>
-                                            <Label Content="Poids (g)" Width="110" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="PoidsBox" Width="100"/>
-                                        </StackPanel>
+							  <!-- Prix achat HT / Poids -->
+							  <Label Grid.Row="5" Grid.Column="0" Content="Prix achat HT" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="PrixAchatBox" Grid.Row="5" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
+							  <Label Grid.Row="5" Grid.Column="3" Content="Poids (g)" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="PoidsBox" Grid.Row="5" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
 
-                                        <!-- Actif / Date -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="8" Background="Transparent">
-                                            <CheckBox x:Name="ActifBox" Content="Actif" />
-                                            <Label Content="Dernière MAJ :" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="DerniereMajLabel" VerticalAlignment="Center"/>
-                                        </StackPanel>
+							  <!-- Prix conseillé (label en gras) -->
+							  <Label Grid.Row="6" Grid.Column="0" Content="Prix conseillé..." VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBlock x:Name="PrixConseilleLabel" Grid.Row="6" Grid.Column="1" Margin="0,6,0,0" FontWeight="Bold" />
 
-                                        <!-- Code-barres -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.Row="9" Background="Transparent">
-                                            <Label Content="Code-barres" Width="110" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="BarcodeBox" Width="200"/>
-                                        </StackPanel>
-                                    </Grid>
+							  <!-- Stock / Seuil alerte -->
+							  <Label Grid.Row="7" Grid.Column="0" Content="Stock actuel" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="StockBox" Grid.Row="7" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
+							  <Label Grid.Row="7" Grid.Column="3" Content="Seuil alerte" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBox x:Name="SeuilBox" Grid.Row="7" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
 
-                                    <!-- Colonne Images -->
-                                    <StackPanel Grid.Column="2" Margin="0" Background="Transparent">
-                                        <GroupBox Header="Images (0..4)" Background="Transparent" Padding="6" BorderThickness="1">
-                                            <StackPanel Background="Transparent">
-                                                <Button Content="Ajouter image" Click="BtnAddImage_Click" />
-                                            </StackPanel>
-                                        </GroupBox>
-                                    </StackPanel>
-                                </Grid>
-                            </ScrollViewer>
-                        </TabItem>
+							  <!-- Actif / Dernière MAJ -->
+							  <CheckBox x:Name="ActifBox" Grid.Row="8" Grid.Column="1" Content="Actif" Margin="0,6,0,0" VerticalAlignment="Center"/>
+							  <Label Grid.Row="8" Grid.Column="3" Content="Dernière MAJ :" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <TextBlock x:Name="DerniereMajLabel" Grid.Row="8" Grid.Column="4" Margin="0,6,0,0" VerticalAlignment="Center"/>
 
-                        <!-- Onglet 2 -->
-                        <TabItem Header="Déclinaisons &amp; Pack">
+							  <!-- Code-barres + bouton générer aligné -->
+							  <Label Grid.Row="9" Grid.Column="0" Content="Code-barres" VerticalAlignment="Center" Margin="0,6,8,0"/>
+							  <Grid Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,6,0,0">
+								<Grid.ColumnDefinitions>
+								  <ColumnDefinition Width="*"/>
+								  <ColumnDefinition Width="140"/>
+								</Grid.ColumnDefinitions>
+								<TextBox x:Name="BarcodeBox" Grid.Column="0" MinHeight="28"/>
+								<Button Grid.Column="1" Content="Générer EAN-13" Margin="8,0,0,0" Click="BtnGenBarcode_Click"/>
+							  </Grid>
+							</Grid>
+						  </ScrollViewer>
+						</TabItem>
+                        <!-- Onglet 2 : Déclinaisons & Pack -->
+                        <TabItem Header="Déclinaisons &amp; Pack" Background="{x:Null}" BorderThickness="0">
                             <Grid Margin="8" Background="Transparent">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -312,20 +260,19 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Déclinaisons -->
                                 <GroupBox Header="Déclinaisons" Grid.Column="0"
-                                          Background="Transparent" BorderThickness="1" Padding="6">
+                          Background="Transparent" BorderThickness="1" Padding="6">
                                     <DockPanel LastChildFill="True">
-                                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6" Background="Transparent">
+                                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
                                             <Button Content="Ajouter"   Click="BtnAddVariant_Click"    Margin="0,0,8,0"/>
                                             <Button Content="Supprimer" Click="BtnRemoveVariant_Click"/>
                                         </StackPanel>
                                         <DataGrid x:Name="GridVariants"
-                                                  AutoGenerateColumns="False"
-                                                  IsReadOnly="True"
-                                                  SelectionMode="Single"
-                                                  Background="Transparent"
-                                                  BorderThickness="0">
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              Background="Transparent"
+                              BorderThickness="0">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"          Width="2*"/>
                                                 <DataGridTextColumn Header="PU HT"       Binding="{Binding PrixVenteHT}"  Width="*"/>
@@ -335,17 +282,16 @@
                                     </DockPanel>
                                 </GroupBox>
 
-                                <!-- Pack -->
                                 <GroupBox Header="Pack (si Type=Pack)" Grid.Column="2"
-                                          Background="Transparent" BorderThickness="1" Padding="6">
+                          Background="Transparent" BorderThickness="1" Padding="6">
                                     <Grid Background="Transparent">
                                         <TextBlock Text="Sélectionne les articles composants et leur quantité." Margin="0,0,0,6"/>
                                         <DataGrid x:Name="GridPack"
-                                                  AutoGenerateColumns="False"
-                                                  IsReadOnly="True"
-                                                  SelectionMode="Single"
-                                                  Background="Transparent"
-                                                  BorderThickness="0">
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              Background="Transparent"
+                              BorderThickness="0">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="ArticleId" Binding="{Binding ArticleItemId}" Width="*"/>
                                                 <DataGridTextColumn Header="Quantité"  Binding="{Binding Quantite}"      Width="*"/>

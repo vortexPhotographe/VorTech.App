@@ -1,0 +1,1 @@
+﻿C:\dev\VorTech.App\Views\ArticlesView.xaml.cs:14:     public partial class ArticlesView : UserControl

@@ -41,8 +41,8 @@
   <Style TargetType="TextBlock">
     <Setter Property="Foreground" Value="{StaticResource Fore}"/>
     <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-  </Style>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
 
   <Style TargetType="Label">
     <Setter Property="Foreground" Value="{StaticResource Subtle}"/>
@@ -55,7 +55,14 @@
     <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
     <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
     <Setter Property="Padding" Value="6,4"/>
-  </Style>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{StaticResource Field}"/>
+                <Setter Property="Foreground" Value="{StaticResource Subtle}"/>
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
   <Style TargetType="ComboBox">
     <Setter Property="Foreground" Value="{StaticResource Fore}"/>
@@ -63,7 +70,14 @@
     <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
     <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
     <Setter Property="Padding" Value="6,4"/>
-  </Style>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{StaticResource Field}"/>
+                <Setter Property="Foreground" Value="{StaticResource Subtle}"/>
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
   <Style TargetType="{x:Type DatePicker}">
     <Setter Property="Foreground" Value="{StaticResource Fore}"/>
