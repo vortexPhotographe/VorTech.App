@@ -98,7 +98,7 @@ ORDER BY Id DESC;";
             {
                 int i = 0;
 
-                int id   = rd.GetInt32(i++);
+                int id = rd.GetInt32(i++);
 
                 string code;
                 if (rd.IsDBNull(i)) { code = string.Empty; i++; }
@@ -122,11 +122,11 @@ ORDER BY Id DESC;";
                     return d;
                 }
 
-                decimal prixA = ToDecAndInc(); // PrixAchatHT
-                decimal prixV = ToDecAndInc(); // PrixVenteHT
-                decimal stock = ToDecAndInc(); // StockActuel
-                decimal seuil = ToDecAndInc(); // SeuilAlerte
-                decimal poids = ToDecAndInc(); // PoidsG
+                decimal prixA = ToDecAndInc();
+                decimal prixV = ToDecAndInc();
+                decimal stock = ToDecAndInc();
+                decimal seuil = ToDecAndInc();
+                decimal poids = ToDecAndInc();
 
                 bool actif = rd.GetInt32(i++) == 1;
 
@@ -175,7 +175,6 @@ FROM Articles WHERE Id=@Id;";
 
         public Article Insert(Article a)
         {
-            DebugMsg.Show("Insert", $"ASK Code={a.Code}, Libelle={a.Libelle}");
             using var cn = Db.Open();
             using var tx = cn.BeginTransaction();
 
@@ -197,18 +196,16 @@ VALUES
                 cmd.Parameters.AddWithValue("@TvaRateId", (object?)a.TvaRateId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@CotisationRateId", (object?)a.CotisationRateId ?? DBNull.Value);
 
-                // decimal -> double (SQLite REAL)
-                cmd.Parameters.AddWithValue("@PrixAchatHT",  Convert.ToDouble(a.PrixAchatHT));
-                cmd.Parameters.AddWithValue("@PrixVenteHT",  Convert.ToDouble(a.PrixVenteHT));
-                cmd.Parameters.AddWithValue("@StockActuel",  Convert.ToDouble(a.StockActuel));
-                cmd.Parameters.AddWithValue("@SeuilAlerte",  Convert.ToDouble(a.SeuilAlerte));
-                cmd.Parameters.AddWithValue("@PoidsG",       Convert.ToDouble(a.PoidsG));
+                cmd.Parameters.AddWithValue("@PrixAchatHT", Convert.ToDouble(a.PrixAchatHT));
+                cmd.Parameters.AddWithValue("@PrixVenteHT", Convert.ToDouble(a.PrixVenteHT));
+                cmd.Parameters.AddWithValue("@StockActuel", Convert.ToDouble(a.StockActuel));
+                cmd.Parameters.AddWithValue("@SeuilAlerte", Convert.ToDouble(a.SeuilAlerte));
+                cmd.Parameters.AddWithValue("@PoidsG", Convert.ToDouble(a.PoidsG));
 
                 cmd.Parameters.AddWithValue("@Actif", a.Actif ? 1 : 0);
                 cmd.Parameters.AddWithValue("@CodeBarres", (object?)a.CodeBarres ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@DerniereMaj", a.DerniereMaj.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 cmd.ExecuteNonQuery();
-                DebugMsg.Show("Insert", "SQL INSERT exécuté");
             }
 
             using (var idCmd = cn.CreateCommand())
@@ -216,10 +213,7 @@ VALUES
                 idCmd.Transaction = tx;
                 idCmd.CommandText = "SELECT last_insert_rowid();";
                 var obj = idCmd.ExecuteScalar();
-                if (obj is null || obj == DBNull.Value)
-                    throw new InvalidOperationException("Échec de l'insertion : aucun ID retourné.");
                 a.Id = checked((int)Convert.ToInt64(obj));
-                DebugMsg.Show("Insert", $"new Id={a.Id}");
             }
 
             tx.Commit();
@@ -228,7 +222,6 @@ VALUES
 
         public void Update(Article a)
         {
-            DebugMsg.Show("Update", $"ASK Id={a.Id}, Code={a.Code}");
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
             cmd.CommandText = @"
@@ -245,18 +238,16 @@ WHERE Id=@Id;";
             cmd.Parameters.AddWithValue("@TvaRateId", (object?)a.TvaRateId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@CotisationRateId", (object?)a.CotisationRateId ?? DBNull.Value);
 
-            // decimal -> double
             cmd.Parameters.AddWithValue("@PrixAchatHT", Convert.ToDouble(a.PrixAchatHT));
             cmd.Parameters.AddWithValue("@PrixVenteHT", Convert.ToDouble(a.PrixVenteHT));
             cmd.Parameters.AddWithValue("@StockActuel", Convert.ToDouble(a.StockActuel));
             cmd.Parameters.AddWithValue("@SeuilAlerte", Convert.ToDouble(a.SeuilAlerte));
-            cmd.Parameters.AddWithValue("@PoidsG",      Convert.ToDouble(a.PoidsG));
+            cmd.Parameters.AddWithValue("@PoidsG", Convert.ToDouble(a.PoidsG));
 
             cmd.Parameters.AddWithValue("@Actif", a.Actif ? 1 : 0);
             cmd.Parameters.AddWithValue("@CodeBarres", (object?)a.CodeBarres ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@DerniereMaj", a.DerniereMaj.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
             cmd.ExecuteNonQuery();
-            DebugMsg.Show("Update", "SQL UPDATE exécuté");
         }
 
         public void Delete(int id)
@@ -269,33 +260,33 @@ WHERE Id=@Id;";
         }
 
         private static Article MapArticle(IDataRecord rd)
-		{
-			int i = 0;
+        {
+            int i = 0;
 
-			var a = new Article();
+            var a = new Article();
 
-			a.Id      = rd.GetInt32(i++);
-			a.Code    = rd.IsDBNull(i) ? string.Empty : rd.GetString(i++); 
-			a.Libelle = rd.IsDBNull(i) ? string.Empty : rd.GetString(i++);
-			a.Type    = (ArticleType)rd.GetInt32(i++);
+            a.Id = rd.GetInt32(i++);
+            a.Code = rd.IsDBNull(i) ? string.Empty : rd.GetString(i++);
+            a.Libelle = rd.IsDBNull(i) ? string.Empty : rd.GetString(i++);
+            a.Type = (ArticleType)rd.GetInt32(i++);
 
-			a.CategorieId      = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++); 
-			a.TvaRateId        = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
-			a.CotisationRateId = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
+            a.CategorieId = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
+            a.TvaRateId = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
+            a.CotisationRateId = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
 
-			a.PrixAchatHT = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
-			a.PrixVenteHT = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
-			a.StockActuel = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
-			a.SeuilAlerte = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
-			a.PoidsG      = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+            a.PrixAchatHT = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+            a.PrixVenteHT = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+            a.StockActuel = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+            a.SeuilAlerte = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+            a.PoidsG = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
 
-			a.Actif = rd.GetInt32(i++) != 0;
+            a.Actif = rd.GetInt32(i++) != 0;
 
-			a.CodeBarres  = rd.IsDBNull(i) ? null : rd.GetString(i++);
-			a.DerniereMaj = ReadDateOnlyFromRecord(rd, i++);
+            a.CodeBarres = rd.IsDBNull(i) ? null : rd.GetString(i++);
+            a.DerniereMaj = ReadDateOnlyFromRecord(rd, i++);
 
-			return a;
-		}
+            return a;
+        }
 
         // ======================================================
         //                      VARIANTES
@@ -313,28 +304,28 @@ WHERE ArticleId=@ArticleId
 ORDER BY Id;";
             cmd.Parameters.AddWithValue("@ArticleId", articleId);
             using var rd = cmd.ExecuteReader();
-			while (rd.Read())
-			{
-				int i = 0;
+            while (rd.Read())
+            {
+                int i = 0;
 
-				int id     = rd.GetInt32(i++);
-				int artId  = rd.GetInt32(i++);               // <- renommé (évite le conflit avec le paramètre articleId)
-				string nom = rd.GetString(i++);
+                int id = rd.GetInt32(i++);
+                int artId = rd.GetInt32(i++);
+                string nom = rd.GetString(i++);
 
-				decimal prix = rd.IsDBNull(i) ? 0m
-					: Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+                decimal prix = rd.IsDBNull(i) ? 0m
+                    : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
 
-				string? cb = rd.IsDBNull(i) ? null : rd.GetString(i++);
+                string? cb = rd.IsDBNull(i) ? null : rd.GetString(i++);
 
-				list.Add(new ArticleVariant
-				{
-					Id          = id,
-					ArticleId   = artId,                     // <- utiliser artId ici
-					Nom         = nom,
-					PrixVenteHT = prix,
-					CodeBarres  = cb
-				});
-			}
+                list.Add(new ArticleVariant
+                {
+                    Id = id,
+                    ArticleId = artId,
+                    Nom = nom,
+                    PrixVenteHT = prix,
+                    CodeBarres = cb
+                });
+            }
             return list;
         }
 
@@ -377,7 +368,7 @@ VALUES (@ArticleId, @Nom, @PrixVenteHT, @CodeBarres);";
         }
 
         // ======================================================
-        //                        PACKS
+        //                       PACKS
         // ======================================================
 
         public List<PackItem> GetPackItems(int packArticleId)
@@ -393,23 +384,22 @@ ORDER BY Id;";
             cmd.Parameters.AddWithValue("@PackArticleId", packArticleId);
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
-			{
-				int i = 0;
+            {
+                int i = 0;
 
-				int id = rd.GetInt32(i++);     // Id
-				_ = rd.GetInt32(i++);          // PackArticleId (non utilisé dans le modèle)
-				int itemId = rd.GetInt32(i++); // ArticleItemId
+                int id = rd.GetInt32(i++);
+                _ = rd.GetInt32(i++);
+                int itemId = rd.GetInt32(i++);
 
-				// SQLite REAL -> double
-				double qte = rd.IsDBNull(i) ? 0.0 : rd.GetDouble(i++);
+                double qte = rd.IsDBNull(i) ? 0.0 : rd.GetDouble(i++);
 
-				list.Add(new PackItem
-				{
-					Id = id,
-					ArticleItemId = itemId,
-					Quantite = qte
-				});
-			}
+                list.Add(new PackItem
+                {
+                    Id = id,
+                    ArticleItemId = itemId,
+                    Quantite = qte
+                });
+            }
             return list;
         }
 
@@ -467,13 +457,13 @@ ON CONFLICT(ArticleId, Slot) DO UPDATE SET RelPath=excluded.RelPath;";
             cmd.ExecuteNonQuery();
         }
 
-        public List<string> GetImagePaths(int articleId)
+        public List<(int Slot, string RelPath)> GetImages(int articleId)
         {
-            var list = new List<string>();
+            var list = new List<(int, string)>();
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
             cmd.CommandText = @"
-SELECT RelPath
+SELECT Slot, RelPath
 FROM ArticleImages
 WHERE ArticleId=@ArticleId
 ORDER BY Slot;";
@@ -481,9 +471,30 @@ ORDER BY Slot;";
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {
-                list.Add(rd.GetString(0));
+                list.Add((rd.GetInt32(0), rd.GetString(1)));
             }
             return list;
+        }
+
+        // conservé pour compat éventuelle ailleurs
+        public List<string> GetImagePaths(int articleId)
+        {
+            var list = new List<string>();
+            foreach (var it in GetImages(articleId))
+                list.Add(it.RelPath);
+            return list;
+        }
+
+        public void DeleteImage(int articleId, int slot)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+DELETE FROM ArticleImages
+WHERE ArticleId=@ArticleId AND Slot=@Slot;";
+            cmd.Parameters.AddWithValue("@ArticleId", articleId);
+            cmd.Parameters.AddWithValue("@Slot", slot);
+            cmd.ExecuteNonQuery();
         }
 
         // ------------ Helpers lecture date robuste --------------

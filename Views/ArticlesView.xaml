@@ -6,6 +6,47 @@
              mc:Ignorable="d"
              Background="Transparent"
              Loaded="UserControl_Loaded">
+    <UserControl.Resources>
+        <!-- Style local pour entête d’onglet sombre -->
+        <Style x:Key="TabItemHeaderLocal" TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{DynamicResource Select}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="6,6,0,0"
+                  Margin="0,0,4,0">
+                            <ContentPresenter Margin="10,4"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <!-- Couleur de l’onglet actif -->
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Select}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Subtle}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
     <Grid Margin="8" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -88,8 +129,6 @@
                     Background="Transparent"
                     BorderThickness="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Id"      Binding="{Binding Id}"          Width="60"/>
-                            <DataGridTextColumn Header="Code"    Binding="{Binding Code}"        Width="*"/>
                             <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}"     Width="2*"/>
                             <DataGridTextColumn Header="PU HT"   Binding="{Binding PrixVenteHT}" Width="120" />
                             <DataGridTextColumn Header="Stock"   Binding="{Binding StockActuel}" Width="100"/>
@@ -104,7 +143,7 @@
                   SnapsToDevicePixels="True"
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"> 
                 <Grid Margin="0" Background="Transparent">
-                    <TabControl Padding="0" Margin="0" Background="Transparent" BorderThickness="0">
+                    <TabControl Background="Transparent" BorderThickness="0">
                         <TabControl.Resources>
                             <Style TargetType="TabItem">
                                 <Setter Property="Foreground" Value="{StaticResource Fore}"/>
@@ -115,11 +154,11 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="TabItem">
                                             <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{StaticResource Border}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{StaticResource Border}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="{TemplateBinding Padding}">
                                                 <ContentPresenter ContentSource="Header"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
@@ -167,12 +206,73 @@
 							  </Grid.RowDefinitions>
 
 							  <!-- Colonne IMAGES (droite) -->
-							  <GroupBox Grid.Column="6" Grid.RowSpan="10" Header="Images (0..4)"
-										Background="Transparent" Padding="8" Margin="0"
+							  <GroupBox Grid.Column="6" Grid.RowSpan="10" Header="Images (0 a 4)"
+										Background="Transparent" Padding="8" Margin="10,0,0,0"
 										BorderThickness="1">
 								<StackPanel Background="Transparent">
 								  <Button Content="Ajouter image" Click="BtnAddImage_Click" />
-								</StackPanel>
+                                            <!-- Vignettes images article (0..4) -->
+                                            <!-- VIGNETTES -->
+                                            <ItemsControl x:Name="ThumbsList" Margin="0,8,0,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border CornerRadius="8" Padding="4" Margin="4"
+              Background="{DynamicResource Panel}"
+              BorderBrush="{DynamicResource Select}" BorderThickness="0">
+                                                            <StackPanel>
+                                                                <Image Width="96" Height="96" Stretch="UniformToFill"
+                 Source="{Binding FullPath}" Tag="{Binding FullPath}">
+                                                                    <!-- ContextMenu autonome (pas de StaticResource) -->
+                                                                    <Image.ContextMenu>
+                                                                        <ContextMenu
+                  Background="{DynamicResource Panel}"
+                  BorderBrush="{DynamicResource Select}"
+                  Foreground="{DynamicResource Fore}"
+                  Padding="4" SnapsToDevicePixels="True">
+                                                                            <ContextMenu.Resources>
+                                                                                <Style TargetType="MenuItem">
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+                                                                                    <Setter Property="Background" Value="Transparent"/>
+                                                                                    <Setter Property="Padding" Value="10,6"/>
+                                                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                                                    <Style.Triggers>
+                                                                                        <Trigger Property="IsHighlighted" Value="True">
+                                                                                            <Setter Property="Background" Value="{DynamicResource Select}"/>
+                                                                                        </Trigger>
+                                                                                        <Trigger Property="IsEnabled" Value="False">
+                                                                                            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+                                                                                        </Trigger>
+                                                                                    </Style.Triggers>
+                                                                                </Style>
+                                                                                <Style TargetType="Separator">
+                                                                                    <Setter Property="Margin" Value="4,2"/>
+                                                                                    <Setter Property="Background" Value="{DynamicResource Subtle}"/>
+                                                                                    <Setter Property="Height" Value="1"/>
+                                                                                </Style>
+                                                                            </ContextMenu.Resources>
+
+                                                                            <MenuItem Header="Ouvrir le dossier" Click="Thumb_OpenFolder"/>
+                                                                            <Separator/>
+                                                                            <MenuItem Header="Supprimer" Click="Thumb_Delete" Tag="{Binding Slot}"/>
+                                                                        </ContextMenu>
+                                                                    </Image.ContextMenu>
+                                                                </Image>
+
+                                                                <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0"
+                     Foreground="{DynamicResource Subtle}"
+                     Text="{Binding Slot, StringFormat='#{0}'}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
 							  </GroupBox>
 
 							  <!-- Lignes G/D (espacement vertical uniforme via Margin Top = 6) -->

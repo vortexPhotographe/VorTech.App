@@ -128,7 +128,6 @@
       </Setter.Value>
     </Setter>
   </Style>
-
   <Style TargetType="DataGrid">
     <Setter Property="Background" Value="{StaticResource Panel}"/>
     <Setter Property="Foreground" Value="{StaticResource Fore}"/>
@@ -235,34 +234,34 @@
     </Setter>
   </Style>
 
-  <Style x:Key="TabItem.Dark" TargetType="TabItem">
-    <Setter Property="Foreground" Value="{StaticResource Fore}"/>
-    <Setter Property="Background" Value="{StaticResource HeaderBg}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
-    <Setter Property="Margin" Value="2,2,2,0"/>
-    <Setter Property="Padding" Value="12,6"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="TabItem">
-          <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+    <Style x:Key="TabItem.Dark" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{StaticResource Fore}"/>
+        <Setter Property="Background" Value="{StaticResource HeaderBg}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+        <Setter Property="Margin" Value="2,2,2,0"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="1" CornerRadius="4,4,0,0" Padding="{TemplateBinding Padding}">
-            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource Panel}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Select}"/>
-            </Trigger>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="#2A2D33"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-          </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Panel}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Select}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#2A2D33"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
-  <Style x:Key="ComboBox.PopupDark" TargetType="ComboBox">
+    <Style x:Key="ComboBox.PopupDark" TargetType="ComboBox">
     <Setter Property="Foreground" Value="{StaticResource Fore}"/>
     <Setter Property="Background" Value="{StaticResource Field}"/>
     <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
@@ -327,61 +326,113 @@
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
   </Style>
     <!-- ComboBox sombre avec template correct (affiche bien SelectionBoxItem) -->
-  <Style x:Key="ComboBox.Dark.Flat" TargetType="ComboBox"
+
+
+    <!-- TabItem : vrai "dark", sans l'effet blanc par défaut -->
+        <Style TargetType="{x:Type TabItem}">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Grid>
+                            <Border x:Name="Bd"
+                  Background="{DynamicResource Panel}"
+                  BorderBrush="{DynamicResource Select}"
+                  BorderThickness="1"
+                  CornerRadius="6,6,0,0"
+                  Margin="0,0,4,0">
+                                <!-- petit espace entre les onglets -->
+                                <ContentPresenter x:Name="ContentSite"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"
+                              RecognizesAccessKey="True"
+                              Margin="10,4"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- Survol -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#202020"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+                            </Trigger>
+
+                            <!-- Sélection -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Select}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+
+                            <!-- Désactivé (lisible sans opacité) -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Subtle}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ComboBox.Dark.Flat" TargetType="ComboBox"
          BasedOn="{StaticResource {x:Type ComboBox}}">
-    <Setter Property="Foreground" Value="{StaticResource Fore}"/>
-    <Setter Property="Background" Value="{StaticResource Field}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
-    <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-    <Setter Property="Padding" Value="6,4"/>
-    <Setter Property="MinHeight" Value="28"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="ComboBox">
-          <Grid>
-            <!-- Bouton de drop-down -->
-            <ToggleButton x:Name="ToggleButton"
+            <Setter Property="Foreground" Value="{StaticResource Fore}"/>
+            <Setter Property="Background" Value="{StaticResource Field}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <!-- Bouton de drop-down -->
+                            <ToggleButton x:Name="ToggleButton"
                           IsChecked="{Binding Path=IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
                           Grid.ColumnSpan="2"
                           Focusable="False"
                           Background="{TemplateBinding Background}"
                           BorderBrush="{TemplateBinding BorderBrush}"
                           BorderThickness="{TemplateBinding BorderThickness}"/>
-            <!-- Valeur sélectionnée (critique) -->
-            <ContentPresenter x:Name="ContentSite"
+                            <!-- Valeur sélectionnée (critique) -->
+                            <ContentPresenter x:Name="ContentSite"
                               Margin="6,4,26,4"
                               HorizontalAlignment="Left" VerticalAlignment="Center"
                               Content="{TemplateBinding SelectionBoxItem}"
                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                               ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-            <!-- Popup -->
-            <Popup x:Name="Popup"
+                            <!-- Popup -->
+                            <Popup x:Name="Popup"
                    Placement="Bottom"
                    IsOpen="{TemplateBinding IsDropDownOpen}"
                    AllowsTransparency="True"
                    Focusable="False"
                    PopupAnimation="Slide">
-              <Border Background="{StaticResource Panel}"
+                                <Border Background="{StaticResource Panel}"
                       BorderBrush="{StaticResource Border}"
                       BorderThickness="1"
                       SnapsToDevicePixels="True">
-                <ScrollViewer CanContentScroll="True">
-                  <ItemsPresenter />
-                </ScrollViewer>
-              </Border>
-            </Popup>
-          </Grid>
-          <ControlTemplate.Triggers>
-            <Trigger Property="HasItems" Value="False">
-              <Setter TargetName="Popup" Property="MinHeight" Value="0"/>
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.6"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
-</ResourceDictionary>
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="Popup" Property="MinHeight" Value="0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+
+                </Setter.Value>
+
+            </Setter>
+        </Style>
+    </ResourceDictionary>
