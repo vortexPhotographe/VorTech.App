@@ -71,40 +71,6 @@
             </StackPanel>
 
             <!-- Statut OK -->
-            <Border Grid.Column="2"
-          x:Name="StatusPanelOk"
-          Visibility="Collapsed"
-          Padding="10,6"
-          CornerRadius="4"
-          Background="{StaticResource HeaderBg}"
-          BorderBrush="{StaticResource Border}"
-          BorderThickness="1"
-          Margin="8,0,0,0">
-                <StackPanel Orientation="Horizontal" Background="Transparent">
-                    <TextBlock x:Name="StatusOkText"
-                 Foreground="{StaticResource Fore}"
-                 FontWeight="SemiBold"
-                 Text="Enregistré ✓"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Statut Erreur -->
-            <Border Grid.Column="2"
-          x:Name="StatusPanelErr"
-          Visibility="Collapsed"
-          Padding="10,6"
-          CornerRadius="4"
-          Background="{StaticResource HeaderBg}"
-          BorderBrush="{StaticResource Accent}"
-          BorderThickness="1"
-          Margin="8,0,0,0">
-                <StackPanel Orientation="Horizontal" Background="Transparent">
-                    <TextBlock x:Name="StatusErrText"
-                 Foreground="{StaticResource Accent}"
-                 FontWeight="SemiBold"
-                 Text="Erreur"/>
-                </StackPanel>
-            </Border>
         </Grid>
 
         <!-- Corps -->
@@ -138,11 +104,40 @@
             </GroupBox>
 
             <!-- Fiche article -->
-            <GroupBox Grid.Column="2" Header="Fiche article"
-                  Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
-                  SnapsToDevicePixels="True"
-                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"> 
+            <GroupBox Grid.Column="2"
+          Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
+          SnapsToDevicePixels="True"
+          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <GroupBox.Header>
+                    <!-- Titre + message inline juste après -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Fiche article"
+               FontSize="16" FontWeight="Bold"
+               Foreground="{DynamicResource Fore}" />
+
+                        <!-- petit espace -->
+                        <TextBlock Text=" " Width="12"/>
+
+                        <!-- OK (vert) -->
+                        <Border x:Name="StatusPanelOk"
+            Visibility="Collapsed"
+            Background="Transparent" BorderThickness="0" Padding="0">
+                            <TextBlock x:Name="StatusOkText"
+                 Foreground="#7CDA5A"  FontWeight="SemiBold"/>
+                        </Border>
+
+                        <!-- Erreur (rouge) -->
+                        <Border x:Name="StatusPanelErr"
+            Visibility="Collapsed"
+            Background="Transparent" BorderThickness="0" Padding="0" Margin="12,0,0,0">
+                            <TextBlock x:Name="StatusErrText"
+                 Foreground="#FF6B6B" FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+                </GroupBox.Header>
+
                 <Grid Margin="0" Background="Transparent">
+                    <!-- 3) TES ONGLETS (inchangés) -->
                     <TabControl Background="Transparent" BorderThickness="0">
                         <TabControl.Resources>
                             <Style TargetType="TabItem">
@@ -154,11 +149,11 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="TabItem">
                                             <Border x:Name="Bd"
-                    Background="{TemplateBinding Background}"
-                    BorderBrush="{StaticResource Border}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="{TemplateBinding Padding}">
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{StaticResource Border}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
                                                 <ContentPresenter ContentSource="Header"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
@@ -319,7 +314,7 @@
 
 							  <!-- Prix achat HT / Poids -->
 							  <Label Grid.Row="5" Grid.Column="0" Content="Prix achat HT" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="PrixAchatBox" Grid.Row="5" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
+                              <TextBox x:Name="PrixAchatBox" TextChanged="PrixAchatBox_TextChanged" Grid.Row="5" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
 							  <Label Grid.Row="5" Grid.Column="3" Content="Poids (g)" VerticalAlignment="Center" Margin="0,6,8,0"/>
 							  <TextBox x:Name="PoidsBox" Grid.Row="5" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
 

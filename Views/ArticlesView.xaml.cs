@@ -30,6 +30,7 @@ namespace VorTech.App.Views
 
         private void TvaBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            ReadFormToCurrent();
             RefreshPrixConseille();
         }
 
@@ -106,6 +107,7 @@ namespace VorTech.App.Views
             GridPack.ItemsSource = _packItems;
 
             RefreshImages(); // <-- NEW : à chaque bind, on recharge les vignettes
+            RefreshPrixConseille();
         }
 
         private static decimal ParseDec(string s)
@@ -419,6 +421,12 @@ namespace VorTech.App.Views
         private void Thumb_OpenFolder(object sender, RoutedEventArgs e)
         {
             OpenFolder();
+        }
+
+        private void PrixAchatBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ReadFormToCurrent();
+            RefreshPrixConseille();
         }
     }
 }
