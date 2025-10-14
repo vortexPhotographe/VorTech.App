@@ -364,14 +364,63 @@
                                         </StackPanel>
                                         <DataGrid x:Name="GridVariants"
                               AutoGenerateColumns="False"
-                              IsReadOnly="True"
+                              IsReadOnly="False"
+                                CellEditEnding="GridVariants_CellEditEnding"
+                                RowEditEnding="GridVariants_RowEditEnding"
+                                CurrentCellChanged="GridVariants_CurrentCellChanged"
                               SelectionMode="Single"
                               Background="Transparent"
                               BorderThickness="0">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"          Width="2*"/>
-                                                <DataGridTextColumn Header="PU HT"       Binding="{Binding PrixVenteHT}"  Width="*"/>
-                                                <DataGridTextColumn Header="Code-barres" Binding="{Binding CodeBarres}"   Width="2*"/>
+                                                <DataGridTextColumn Header="Nom"           Binding="{Binding Nom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"          Width="2*"/>
+                                                <DataGridTextColumn Header="Prix achat HT" Binding="{Binding PrixAchatHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
+                                                <DataGridTextColumn Header="PU HT"         Binding="{Binding PrixVenteHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
+                                                <DataGridTextColumn Header="Stock"         Binding="{Binding StockActuel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
+                                                <DataGridTextColumn Header="Seuil alerte"  Binding="{Binding SeuilAlerte, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
+                                                <!-- Code-barres avec menu contextuel “Générer” -->
+                                                <DataGridTemplateColumn Header="Code-barres" Width="2*">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding CodeBarres}" ContextMenuOpening="Variant_Codebar_ContextMenuOpening">
+                                                                <TextBlock.ContextMenu>
+                                                                    <ContextMenu
+      Background="{DynamicResource Panel}"
+      BorderBrush="{DynamicResource Select}"
+      Foreground="{DynamicResource Fore}"
+      Padding="4"
+      SnapsToDevicePixels="True">
+
+                                                                        <!-- styles locaux au menu (identiques à ceux des images) -->
+                                                                        <ContextMenu.Resources>
+                                                                            <Style TargetType="MenuItem">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+                                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                                <Setter Property="Padding" Value="10,6"/>
+                                                                                <Setter Property="BorderThickness" Value="0"/>
+                                                                                <Style.Triggers>
+                                                                                    <Trigger Property="IsHighlighted" Value="True">
+                                                                                        <Setter Property="Background" Value="{DynamicResource Select}"/>
+                                                                                    </Trigger>
+                                                                                    <Trigger Property="IsEnabled" Value="False">
+                                                                                        <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+                                                                                    </Trigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+
+                                                                            <Style TargetType="Separator">
+                                                                                <Setter Property="Margin" Value="4,2"/>
+                                                                                <Setter Property="Background" Value="{DynamicResource Subtle}"/>
+                                                                                <Setter Property="Height" Value="1"/>
+                                                                            </Style>
+                                                                        </ContextMenu.Resources>
+
+                                                                        <MenuItem Header="Générer EAN-13" Click="Variant_GenBarcode_Click"/>
+                                                                    </ContextMenu>
+                                                                </TextBlock.ContextMenu>
+                                                            </TextBlock>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </DockPanel>

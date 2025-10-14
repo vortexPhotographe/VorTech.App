@@ -107,6 +107,19 @@ namespace VorTech.App.Views
             GridPack.ItemsSource = _packItems;
 
             RefreshImages(); // <-- NEW : à chaque bind, on recharge les vignettes
+                             // Variantes : griser stock/seuil article et afficher la somme des stocks variantes
+            if (_variants != null && _variants.Count > 0)
+            {
+                var sum = _variants.Sum(v => v.StockActuel);
+                StockBox.IsEnabled = false;
+                SeuilBox.IsEnabled = false;
+                StockBox.Text = sum.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                StockBox.IsEnabled = true;
+                SeuilBox.IsEnabled = true;
+            }
             RefreshPrixConseille();
         }
 
@@ -377,6 +390,94 @@ namespace VorTech.App.Views
                 _images.Add(new ImgRow(it.Slot, it.RelPath, full));
             }
             RenderImages();
+        }
+
+        // Sauvegarde “au fil de l’eau”
+        private void GridVariants_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (GridVariants?.SelectedItem is ArticleVariant v)
+                {
+                    _articles.UpdateVariant(v);
+                    // si le stock/seuil a changé : mettre à jour la somme affichée
+                    var sum = _variants.Sum(x => x.StockActuel);
+                    StockBox.Text = sum.ToString("0.##", CultureInfo.InvariantCulture);
+                }
+            }, System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void GridVariants_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            if (e.Row?.Item is ArticleVariant v)
+            {
+                _articles.UpdateVariant(v);
+                var sum = _variants.Sum(x => x.StockActuel);
+                StockBox.Text = sum.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+        }
+
+        private void GridVariants_CurrentCellChanged(object sender, EventArgs e)
+        {
+            if (GridVariants?.CurrentItem is ArticleVariant v)
+            {
+                _articles.UpdateVariant(v);
+                var sum = _variants.Sum(x => x.StockActuel);
+                StockBox.Text = sum.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+        }
+
+        // Génération EAN-13 (menu contextuel)
+        private void Variant_GenBarcode_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            var artCb = BarcodeBox.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(artCb) || artCb.Length < 12)
+            {
+                ShowErr("Génère (ou saisis) d'abord le code-barres de l'article.");
+                return;
+            }
+
+            // Récupère la variante de la ligne
+            var fe = sender as FrameworkElement;
+            var v = fe?.DataContext as ArticleVariant;
+            if (v == null) return;
+
+            // base = 12 premiers chiffres du code article
+            var base12 = new string(artCb.Where(char.IsDigit).Take(12).ToArray());
+            if (base12.Length < 12)
+            {
+                ShowErr("Le code article doit contenir au moins 12 chiffres.");
+                return;
+            }
+
+            // index de variante 1..99 selon l'ordre actuel dans la grille
+            int index = Math.Max(1, _variants.IndexOf(v) + 1); // 1-based
+            string suffix2 = (index % 100).ToString("00", CultureInfo.InvariantCulture);
+
+            // remplace les 2 derniers digits du base12 par suffix2
+            var core12 = base12.Substring(0, 10) + suffix2;
+
+            // calcule la clé EAN-13
+            int sum = 0;
+            for (int i = 0; i < core12.Length; i++)
+            {
+                int digit = core12[i] - '0';
+                sum += (i % 2 == 0) ? digit : digit * 3; // index 0 = position 1
+            }
+            int check = (10 - (sum % 10)) % 10;
+
+            v.CodeBarres = core12 + check.ToString(CultureInfo.InvariantCulture);
+            _articles.UpdateVariant(v);
+
+            ShowOk("Code-barres variante généré.");
+        }
+
+        private void Variant_Codebar_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // Laisse le menu s'ouvrir même si CodeBarres est vide (utile pour "Générer").
         }
 
         private void RenderImages()

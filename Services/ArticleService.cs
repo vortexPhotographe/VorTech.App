@@ -46,11 +46,34 @@ CREATE TABLE IF NOT EXISTS ArticleVariants (
     Id           INTEGER PRIMARY KEY AUTOINCREMENT,
     ArticleId    INTEGER NOT NULL,
     Nom          TEXT NOT NULL,
+    PrixAchatHT  REAL NOT NULL DEFAULT 0,
     PrixVenteHT  REAL NOT NULL DEFAULT 0,
+    StockActuel  REAL NOT NULL DEFAULT 0,
+    SeuilAlerte  REAL NOT NULL DEFAULT 0,
     CodeBarres   TEXT NULL,
     FOREIGN KEY (ArticleId) REFERENCES Articles(Id) ON DELETE CASCADE
 );";
             cmd.ExecuteNonQuery();
+            try
+            {
+                cmd.CommandText = "ALTER TABLE ArticleVariants ADD COLUMN PrixAchatHT REAL NOT NULL DEFAULT 0;";
+                cmd.ExecuteNonQuery();
+            }
+            catch { /* colonne déjà existante */ }
+
+            try
+            {
+                cmd.CommandText = "ALTER TABLE ArticleVariants ADD COLUMN StockActuel REAL NOT NULL DEFAULT 0;";
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+
+            try
+            {
+                cmd.CommandText = "ALTER TABLE ArticleVariants ADD COLUMN SeuilAlerte REAL NOT NULL DEFAULT 0;";
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
 
             // ---------- Packs ----------
             cmd.CommandText = @"
@@ -298,7 +321,9 @@ WHERE Id=@Id;";
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
             cmd.CommandText = @"
-SELECT Id, ArticleId, Nom, PrixVenteHT, CodeBarres
+SELECT Id, ArticleId, Nom,
+       PrixAchatHT, PrixVenteHT, StockActuel, SeuilAlerte,
+       CodeBarres
 FROM ArticleVariants
 WHERE ArticleId=@ArticleId
 ORDER BY Id;";
@@ -312,8 +337,10 @@ ORDER BY Id;";
                 int artId = rd.GetInt32(i++);
                 string nom = rd.GetString(i++);
 
-                decimal prix = rd.IsDBNull(i) ? 0m
-                    : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+                decimal prixA = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+                decimal prixV = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+                decimal stock = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
+                decimal seuil = rd.IsDBNull(i) ? 0m : Convert.ToDecimal(rd.GetDouble(i++), CultureInfo.InvariantCulture);
 
                 string? cb = rd.IsDBNull(i) ? null : rd.GetString(i++);
 
@@ -322,7 +349,10 @@ ORDER BY Id;";
                     Id = id,
                     ArticleId = artId,
                     Nom = nom,
-                    PrixVenteHT = prix,
+                    PrixAchatHT = prixA,
+                    PrixVenteHT = prixV,
+                    StockActuel = stock,
+                    SeuilAlerte = seuil,
                     CodeBarres = cb
                 });
             }
@@ -338,11 +368,14 @@ ORDER BY Id;";
             {
                 cmd.Transaction = tx;
                 cmd.CommandText = @"
-INSERT INTO ArticleVariants (ArticleId, Nom, PrixVenteHT, CodeBarres)
-VALUES (@ArticleId, @Nom, @PrixVenteHT, @CodeBarres);";
+INSERT INTO ArticleVariants (ArticleId, Nom, PrixAchatHT, PrixVenteHT, StockActuel, SeuilAlerte, CodeBarres)
+VALUES (@ArticleId, @Nom, @PrixAchatHT, @PrixVenteHT, @StockActuel, @SeuilAlerte, @CodeBarres);";
                 cmd.Parameters.AddWithValue("@ArticleId", v.ArticleId);
                 cmd.Parameters.AddWithValue("@Nom", v.Nom ?? string.Empty);
+                cmd.Parameters.AddWithValue("@PrixAchatHT", Convert.ToDouble(v.PrixAchatHT));
                 cmd.Parameters.AddWithValue("@PrixVenteHT", Convert.ToDouble(v.PrixVenteHT));
+                cmd.Parameters.AddWithValue("@StockActuel", Convert.ToDouble(v.StockActuel));
+                cmd.Parameters.AddWithValue("@SeuilAlerte", Convert.ToDouble(v.SeuilAlerte));
                 cmd.Parameters.AddWithValue("@CodeBarres", (object?)v.CodeBarres ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
@@ -357,6 +390,30 @@ VALUES (@ArticleId, @Nom, @PrixVenteHT, @CodeBarres);";
             tx.Commit();
             return v;
         }
+
+        public void UpdateVariant(ArticleVariant v)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE ArticleVariants
+   SET Nom=@Nom,
+       PrixAchatHT=@PrixAchatHT,
+       PrixVenteHT=@PrixVenteHT,
+       StockActuel=@StockActuel,
+       SeuilAlerte=@SeuilAlerte,
+       CodeBarres=@CodeBarres
+ WHERE Id=@Id;";
+            cmd.Parameters.AddWithValue("@Id", v.Id);
+            cmd.Parameters.AddWithValue("@Nom", v.Nom ?? string.Empty);
+            cmd.Parameters.AddWithValue("@PrixAchatHT", Convert.ToDouble(v.PrixAchatHT));
+            cmd.Parameters.AddWithValue("@PrixVenteHT", Convert.ToDouble(v.PrixVenteHT));
+            cmd.Parameters.AddWithValue("@StockActuel", Convert.ToDouble(v.StockActuel));
+            cmd.Parameters.AddWithValue("@SeuilAlerte", Convert.ToDouble(v.SeuilAlerte));
+            cmd.Parameters.AddWithValue("@CodeBarres", (object?)v.CodeBarres ?? DBNull.Value);
+            cmd.ExecuteNonQuery();
+        }
+
 
         public void DeleteVariant(int id)
         {
