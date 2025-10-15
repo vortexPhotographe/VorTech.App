@@ -3,11 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:VorTech.App.Views"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
              Background="Transparent"
              Loaded="UserControl_Loaded">
+
+    <!-- Déclaration UNIQUE des converters + Style -->
     <UserControl.Resources>
-        <!-- Style local pour entête d’onglet sombre -->
         <Style x:Key="TabItemHeaderLocal" TargetType="TabItem">
             <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -18,21 +21,20 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="Bd"
-                  Background="{TemplateBinding Background}"
-                  BorderBrush="{DynamicResource Select}"
-                  BorderThickness="{TemplateBinding BorderThickness}"
-                  CornerRadius="6,6,0,0"
-                  Margin="0,0,4,0">
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Select}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6,6,0,0"
+                                Margin="0,0,4,0">
                             <ContentPresenter Margin="10,4"
-                              VerticalAlignment="Center"
-                              HorizontalAlignment="Center"/>
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <!-- Couleur de l’onglet actif -->
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Select}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
@@ -427,18 +429,34 @@
                                 </GroupBox>
 
                                 <GroupBox Header="Pack (si Type=Pack)" Grid.Column="2"
-                          Background="Transparent" BorderThickness="1" Padding="6">
+                                    Background="Transparent" BorderThickness="1" Padding="6">
                                     <Grid Background="Transparent">
-                                        <TextBlock Text="Sélectionne les articles composants et leur quantité." Margin="0,0,0,6"/>
-                                        <DataGrid x:Name="GridPack"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              Background="Transparent"
-                              BorderThickness="0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- barre d’actions -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Background="Transparent" Margin="0,0,0,6">
+                                            <Button Content="Ajouter au pack…" Click="BtnAddToPack_Click" Margin="0,0,8,0"/>
+                                            <Button Content="Supprimer" Click="BtnRemovePackRow_Click"/>
+                                        </StackPanel>
+
+                                        <!-- grille pack -->
+                                        <DataGrid x:Name="GridPack" Grid.Row="1"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False" CanUserDeleteRows="False"
+                                          IsReadOnly="False"
+                                          SelectionMode="Single"
+                                          SelectionUnit="FullRow"
+                                          RowHeaderWidth="0"
+                                          CellEditEnding="GridPack_CellEditEnding"
+                                          RowEditEnding="GridPack_RowEditEnding"
+                                          CurrentCellChanged="GridPack_CurrentCellChanged">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="ArticleId" Binding="{Binding ArticleItemId}" Width="*"/>
-                                                <DataGridTextColumn Header="Quantité"  Binding="{Binding Quantite}"      Width="*"/>
+                                                <DataGridTextColumn Header="Nom" Width="3*" Binding="{Binding DisplayName}" IsReadOnly="True"/>
+                                                <DataGridTextColumn Header="Qté" Width="80"
+                                                    Binding="{Binding Quantite, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=0.##}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
                                     </Grid>

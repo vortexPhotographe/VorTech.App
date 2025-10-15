@@ -6,5 +6,6 @@ namespace VorTech.App.Models
         public int ArticlePackId { get; set; }   // Id de l'article de type Pack
         public int ArticleItemId { get; set; }   // Id de l'article composant
         public double Quantite { get; set; }     // pas de réassort direct sur Pack
+        public int? VariantId { get; set; }   // Id de la déclinaison (null => référence article)
     }
 }

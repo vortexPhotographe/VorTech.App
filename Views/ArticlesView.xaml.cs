@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using VorTech.App.Models;
 using VorTech.App.Services;
@@ -23,6 +24,7 @@ namespace VorTech.App.Views
         private ObservableCollection<PackItem> _packItems = new();
 
         private Article? _current;
+        public ArticleService ArticlesService => _articles;
 
         // ------------------- NEW: images en mémoire pour le rendu -------------------
         private record ImgRow(int Slot, string RelPath, string FullPath);
@@ -83,6 +85,12 @@ namespace VorTech.App.Views
         {
             var a = _current ?? new Article { DerniereMaj = DateOnly.FromDateTime(DateTime.Now) };
 
+            // Si article de type Pack => champs calculés non éditables
+            bool isPack = a.Type == ArticleType.Pack;
+            PrixAchatBox.IsEnabled = !isPack;
+            PoidsBox.IsEnabled = !isPack;
+            // StockBox est déjà remis par RecomputePackAggregates via UpdatePackComputed
+
             CodeBox.Text = a.Code;
             LibelleBox.Text = a.Libelle;
             TypeArticleRadio.IsChecked = a.Type == ArticleType.Article;
@@ -102,9 +110,9 @@ namespace VorTech.App.Views
             BarcodeBox.Text = a.CodeBarres ?? "";
 
             _variants = new ObservableCollection<ArticleVariant>(_articles.GetVariants(a.Id));
-            _packItems = new ObservableCollection<PackItem>(_articles.GetPackItems(a.Id));
+            var packRows = _articles.GetPackItemsWithNames(a.Id);
             GridVariants.ItemsSource = _variants;
-            GridPack.ItemsSource = _packItems;
+            GridPack.ItemsSource = new ObservableCollection<PackItemWithName>(packRows);
 
             RefreshImages(); // <-- NEW : à chaque bind, on recharge les vignettes
                              // Variantes : griser stock/seuil article et afficher la somme des stocks variantes
@@ -121,6 +129,14 @@ namespace VorTech.App.Views
                 SeuilBox.IsEnabled = true;
             }
             RefreshPrixConseille();
+            if (_current?.Type == ArticleType.Pack && _current.Id > 0)
+            {
+                _articles.RecomputePackAggregates(_current.Id);
+                // rebind léger pour refléter les valeurs persistées
+                PrixAchatBox.Text = _current.PrixAchatHT.ToString("0.##", CultureInfo.InvariantCulture);
+                PoidsBox.Text = _current.PoidsG.ToString("0.##", CultureInfo.InvariantCulture);
+                StockBox.Text = _current.StockActuel.ToString("0.##", CultureInfo.InvariantCulture);
+            }
         }
 
         private static decimal ParseDec(string s)
@@ -129,6 +145,7 @@ namespace VorTech.App.Views
             s = s.Trim().Replace(',', '.');
             return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
         }
+
 
         private void ReadFormToCurrent()
         {
@@ -272,6 +289,92 @@ namespace VorTech.App.Views
             _articles.DeleteVariant(v.Id);
             _variants.Remove(v);
             ShowOk("Variante supprimée.");
+        }
+
+        private void GridPack_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
+            {
+                _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
+                if (_current?.Id > 0)
+                {
+                    _articles.RecomputePackAggregates(_current.Id);
+                    BindCurrentToForm();
+                }
+            }
+        }
+
+        private void GridPack_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+        {
+            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
+            {
+                _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
+                if (_current?.Id > 0)
+                {
+                    _articles.RecomputePackAggregates(_current.Id);
+                    BindCurrentToForm();
+                }
+            }
+        }
+
+        private void GridPack_CurrentCellChanged(object sender, EventArgs e)
+        {
+            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
+            {
+                _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
+                if (_current?.Id > 0)
+                {
+                    _articles.RecomputePackAggregates(_current.Id);
+                    BindCurrentToForm();
+                }
+            }
+        }
+
+
+        private void SaveCurrentPackRow()
+        {
+            if (_current == null || _current.Id == 0) return;
+            if (GridPack == null) return;
+
+            // s’assure que les bindings du Combo/Cellule sont committés
+            GridPack.CommitEdit(DataGridEditingUnit.Cell, true);
+            GridPack.CommitEdit(DataGridEditingUnit.Row, true);
+
+            if (GridPack.CurrentItem is not PackItem row) return;
+
+            // quantité par défaut
+            if (row.Quantite <= 0) row.Quantite = 1;
+
+            // ===== VARIANTE =====
+            if (row.VariantId.HasValue && row.VariantId.Value > 0)
+            {
+                // récupérer le parent pour satisfaire le NOT NULL sur ArticleItemId
+                var v = _articles.GetVariantById(row.VariantId.Value);
+                row.ArticleItemId = v.ArticleId;
+
+                if (row.Id == 0)
+                    _articles.InsertPackItemVariant(_current.Id, row.VariantId.Value, (decimal)row.Quantite);
+                else
+                    _articles.UpdatePackItem(row.Id, (decimal)row.Quantite); // quantité seule
+            }
+            // ===== ARTICLE =====
+            else
+            {
+                // tant qu’aucun article n’est choisi, on NE SAUVE PAS (sinon FK casse)
+                if (row.ArticleItemId <= 0) return;
+
+                // c’est bien une ligne article
+                row.VariantId = null;
+
+                if (row.Id == 0)
+                    _articles.InsertPackItem(_current.Id, row.ArticleItemId, (decimal)row.Quantite);
+                else
+                    _articles.UpdatePackItem(row.Id, (decimal)row.Quantite);
+            }
+
+            // recalcul + refresh fiche
+            _articles.RecomputePackAggregates(_current.Id);
+            BindCurrentToForm();
         }
 
         // ------------------- IMAGES -------------------
@@ -528,6 +631,47 @@ namespace VorTech.App.Views
         {
             ReadFormToCurrent();
             RefreshPrixConseille();
+        }
+
+        private void BtnAddToPack_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null || _current.Id == 0) return;
+            var dlg = new SelectPackItemsWindow(_articles)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                var selected = dlg.SelectedRows; // List<(int ArticleId, int? VariantId)>
+                if (selected == null || selected.Count == 0) return;
+
+                var defaultQty = (selected.Count == 1) ? 2 : 1;
+
+                foreach (var (articleId, variantId) in selected)
+                    _articles.UpsertPackItem(_current.Id, articleId, variantId, defaultQty);
+
+                _articles.RecomputePackAggregates(_current.Id);
+                BindCurrentToForm();
+            }
+        }
+
+        private void BtnRemovePackRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current?.Id > 0 && GridPack?.SelectedItem is PackItemWithName r)
+            {
+                _articles.DeletePackItem(r.Id);
+                _articles.RecomputePackAggregates(_current.Id);
+                BindCurrentToForm();
+            }
+        }
+
+        public class SelectablePackRow
+        {
+            public int ArticleId { get; set; }
+            public int? VariantId { get; set; }
+            public string DisplayName { get; set; } = "";
+            public bool IsSelected { get; set; }  // pratique pour la fenêtre
         }
     }
 }
