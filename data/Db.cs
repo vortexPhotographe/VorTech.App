@@ -1,5 +1,7 @@
 // data/Db.cs
 using System.IO;
+using System;
+using System.Data;
 using Microsoft.Data.Sqlite;
 using VorTech.App.Services; // <- pour Logger
 
@@ -44,6 +46,14 @@ namespace VorTech.App
             }
 
             return cn;
+        }
+
+        public static void AddParam(IDbCommand cmd, string name, object? value)
+        {
+            var p = cmd.CreateParameter();
+            p.ParameterName = name;
+            p.Value = value ?? DBNull.Value;
+            cmd.Parameters.Add(p);
         }
     }
 }
