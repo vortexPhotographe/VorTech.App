@@ -83,7 +83,21 @@ namespace VorTech.App.Views
 
         private void BindCurrentToForm()
         {
+            // Si pack, on recalcule d’abord en DB puis on recharge _current depuis la DB
+            if (_current?.Type == ArticleType.Pack && _current.Id > 0)
+            {
+                _articles.RecomputePackAggregates(_current.Id);
+                var fresh = _articles.GetById(_current.Id);
+                if (fresh != null) _current = fresh;
+            }
             var a = _current ?? new Article { DerniereMaj = DateOnly.FromDateTime(DateTime.Now) };
+
+            if (a.Type == ArticleType.Pack && a.Id > 0)
+            {
+                _articles.RecomputePackAggregates(a.Id);
+                a = _articles.GetById(a.Id)!;    // relire
+                _current = a;                     // garder _current en phase
+            }
 
             // Si article de type Pack => champs calculés non éditables
             bool isPack = a.Type == ArticleType.Pack;
@@ -111,8 +125,20 @@ namespace VorTech.App.Views
 
             _variants = new ObservableCollection<ArticleVariant>(_articles.GetVariants(a.Id));
             var packRows = _articles.GetPackItemsWithNames(a.Id);
+
             GridVariants.ItemsSource = _variants;
-            GridPack.ItemsSource = new ObservableCollection<PackItemWithName>(packRows);
+            if (GridPack.ItemsSource is ObservableCollection<PackItemWithName> oc)
+            {
+                // On réutilise la collection existante pour éviter le “flash”
+                oc.Clear();
+                foreach (var r in packRows) oc.Add(r);
+            }
+            else
+            {
+                // Première initialisation
+                GridPack.ItemsSource = new ObservableCollection<PackItemWithName>(packRows);
+            }
+
 
             RefreshImages(); // <-- NEW : à chaque bind, on recharge les vignettes
                              // Variantes : griser stock/seuil article et afficher la somme des stocks variantes
@@ -129,14 +155,6 @@ namespace VorTech.App.Views
                 SeuilBox.IsEnabled = true;
             }
             RefreshPrixConseille();
-            if (_current?.Type == ArticleType.Pack && _current.Id > 0)
-            {
-                _articles.RecomputePackAggregates(_current.Id);
-                // rebind léger pour refléter les valeurs persistées
-                PrixAchatBox.Text = _current.PrixAchatHT.ToString("0.##", CultureInfo.InvariantCulture);
-                PoidsBox.Text = _current.PoidsG.ToString("0.##", CultureInfo.InvariantCulture);
-                StockBox.Text = _current.StockActuel.ToString("0.##", CultureInfo.InvariantCulture);
-            }
         }
 
         private static decimal ParseDec(string s)
@@ -293,43 +311,69 @@ namespace VorTech.App.Views
 
         private void GridPack_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
+            // On ne traite que l’édition de la colonne “Qté”
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            if (!string.Equals(e.Column.Header?.ToString(), "Qté", StringComparison.OrdinalIgnoreCase)) return;
+
+            if (e.Row.Item is PackItemWithName r && r.Id > 0 && e.EditingElement is TextBox tb)
             {
-                _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
+                var txt = (tb.Text ?? "").Trim();
+
+                // Parse robuste (point ou virgule)
+                if (!decimal.TryParse(txt, NumberStyles.Number, CultureInfo.InvariantCulture, out var q) &&
+                    !decimal.TryParse(txt, NumberStyles.Number, CultureInfo.CurrentCulture, out q))
+                    return;
+
+                if (q < 0) q = 0;
+
+                // 1) MAJ objet + DB
+                r.Quantite = (double)q;
+                _articles.UpdatePackItem(r.Id, q);
+
+                // 2) Recalcule les agrégats du pack, sans rebind complet de la grille
                 if (_current?.Id > 0)
                 {
                     _articles.RecomputePackAggregates(_current.Id);
-                    BindCurrentToForm();
+
+                    // Recharge juste l’article pour rafraîchir les 3 champs calculés
+                    var fresh = _articles.GetById(_current.Id);
+                    if (fresh != null)
+                    {
+                        _current = fresh;
+                        PrixAchatBox.Text = _current.PrixAchatHT.ToString("0.##", CultureInfo.InvariantCulture);
+                        PoidsBox.Text = _current.PoidsG.ToString("0.##", CultureInfo.InvariantCulture);
+                        StockBox.Text = _current.StockActuel.ToString("0.##", CultureInfo.InvariantCulture);
+                    }
                 }
             }
         }
 
         private void GridPack_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
         {
-            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
+            if (e.EditAction != DataGridEditAction.Commit) return;
+
+            // L’item édité (après commit)
+            if (e.Row?.Item is PackItemWithName r && r.Id > 0)
             {
+                // Sauvegarde quantité
                 _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
+
+                // Recompute + rebind en préservant la sélection
                 if (_current?.Id > 0)
                 {
                     _articles.RecomputePackAggregates(_current.Id);
-                    BindCurrentToForm();
+
+                    var keepId = r.Id;  // mémorise la ligne sélectionnée
+                    BindCurrentToForm(); // recharge ItemsSource + DisplayName
+                                         // Restaure la sélection
+                    if (GridPack.ItemsSource is IEnumerable<PackItemWithName> rows)
+                    {
+                        var match = rows.FirstOrDefault(x => x.Id == keepId);
+                        if (match != null) GridPack.SelectedItem = match;
+                    }
                 }
             }
         }
-
-        private void GridPack_CurrentCellChanged(object sender, EventArgs e)
-        {
-            if (GridPack?.CurrentItem is PackItemWithName r && r.Id > 0)
-            {
-                _articles.UpdatePackItem(r.Id, (decimal)r.Quantite);
-                if (_current?.Id > 0)
-                {
-                    _articles.RecomputePackAggregates(_current.Id);
-                    BindCurrentToForm();
-                }
-            }
-        }
-
 
         private void SaveCurrentPackRow()
         {

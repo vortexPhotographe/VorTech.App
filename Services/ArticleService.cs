@@ -848,13 +848,22 @@ ORDER BY pi.Id;";
             while (rd.Read())
             {
                 int i = 0;
-                var id = rd.GetInt32(i++);
-                var pack = rd.GetInt32(i++);
-                var artId = rd.GetInt32(i++);
-                int? varId = rd.IsDBNull(i) ? (int?)null : rd.GetInt32(i++);
-                var qte = rd.IsDBNull(i) ? 0.0 : rd.GetDouble(i++);
-                var artNm = rd.IsDBNull(i) ? "" : rd.GetString(i++);
-                var varNm = rd.IsDBNull(i) ? "" : rd.GetString(i++);
+
+                var id = rd.GetInt32(i++);           // pi.Id
+                var pack = rd.GetInt32(i++);           // pi.PackArticleId
+                var artId = rd.GetInt32(i++);           // pi.ArticleItemId
+
+                int? varId;
+                if (rd.IsDBNull(i)) { varId = null; i++; } else { varId = rd.GetInt32(i++); }
+
+                double qte;
+                if (rd.IsDBNull(i)) { qte = 0.0; i++; } else { qte = rd.GetDouble(i++); }
+
+                string artNm;
+                if (rd.IsDBNull(i)) { artNm = ""; i++; } else { artNm = rd.GetString(i++); }
+
+                string varNm;
+                if (rd.IsDBNull(i)) { varNm = ""; i++; } else { varNm = rd.GetString(i++); }
 
                 var display = string.IsNullOrWhiteSpace(varNm) ? artNm : $"{artNm} – {varNm}";
 

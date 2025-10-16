@@ -450,9 +450,7 @@
                                           SelectionMode="Single"
                                           SelectionUnit="FullRow"
                                           RowHeaderWidth="0"
-                                          CellEditEnding="GridPack_CellEditEnding"
-                                          RowEditEnding="GridPack_RowEditEnding"
-                                          CurrentCellChanged="GridPack_CurrentCellChanged">
+                                          CellEditEnding="GridPack_CellEditEnding">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Nom" Width="3*" Binding="{Binding DisplayName}" IsReadOnly="True"/>
                                                 <DataGridTextColumn Header="Qté" Width="80"
