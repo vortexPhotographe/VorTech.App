@@ -30,6 +30,8 @@ namespace VorTech.App.Services
 
             var json = File.ReadAllText(ConfigPath);
             _cache = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+            if (string.IsNullOrWhiteSpace(_cache!.TaxMode))
+                _cache!.TaxMode = _cache!.IsMicro ? "Micro" : "TVA";
             return _cache!;
         }
 

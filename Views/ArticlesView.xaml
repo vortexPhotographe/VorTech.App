@@ -3,467 +3,199 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:views="clr-namespace:VorTech.App.Views"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
-             Background="Transparent"
-             Loaded="UserControl_Loaded">
+             d:DesignWidth="1200" d:DesignHeight="600">
+    <!-- Grille externe : gauche fixe (liste), séparateur, fiche ( * ), séparateur, images (Auto borné) -->
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="340"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
 
-    <!-- Déclaration UNIQUE des converters + Style -->
-    <UserControl.Resources>
-        <Style x:Key="TabItemHeaderLocal" TargetType="TabItem">
-            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="14,6"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{DynamicResource Select}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6,6,0,0"
-                                Margin="0,0,4,0">
-                            <ContentPresenter Margin="10,4"
-                                              VerticalAlignment="Center"
-                                              HorizontalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Select}"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Subtle}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
+        <!-- ===================== LISTE (gauche) ===================== -->
+        <GroupBox Grid.Column="0" Header="Articles"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <DockPanel>
+                <!-- Barre de recherche en haut -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Vertical" Margin="6,6,6,0">
+                    <TextBlock Text="Rechercher par libellé" Margin="0,0,0,4"/>
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged"/>
+                </StackPanel>
 
-    <Grid Margin="8" Background="Transparent">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+                <!-- Liste -->
+                <DataGrid x:Name="GridArticles" Margin="6" DockPanel.Dock="Bottom"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  SelectionMode="Single" SelectionUnit="FullRow"
+                  HeadersVisibility="Column"
+                  SelectionChanged="GridArticles_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}" Width="2*"/>
+                        <DataGridTextColumn Header="Prix" Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*"/>
+                        <DataGridTextColumn Header="Stock" Binding="{Binding StockActuel, StringFormat=0}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </GroupBox>
 
-        <!-- Toolbar -->
-        <!-- Toolbar + statut -->
-        <Grid Grid.Row="0" Margin="0,0,0,8" Background="Transparent">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <!-- Séparateur -->
+        <Border Grid.Column="1" Background="Transparent"/>
 
-            <!-- Boutons -->
-            <StackPanel Orientation="Horizontal" Background="Transparent">
-                <Button x:Name="BtnNew"       Content="Nouveau"     Click="BtnNew_Click"       Margin="0,0,8,0"/>
-                <Button x:Name="BtnSave"      Content="Enregistrer" Click="BtnSave_Click"      Margin="0,0,8,0"/>
-                <Button x:Name="BtnDelete"    Content="Supprimer"   Click="BtnDelete_Click"    Margin="0,0,8,0"/>
-                <Button x:Name="BtnReload"    Content="Recharger"   Click="BtnReload_Click"/>
-            </StackPanel>
+        <!-- ===================== FICHE (centre) ===================== -->
+        <GroupBox Grid.Column="2" Header="Fiche article"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <ScrollViewer x:Name="FicheScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="6" Width="{Binding ElementName=FicheScroll, Path=ViewportWidth}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Barre actions -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Form 4 colonnes -->
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="*"/>
+                        <!-- Onglets -->
+                    </Grid.RowDefinitions>
 
-            <!-- Statut OK -->
-        </Grid>
-
-        <!-- Corps -->
-        <Grid Grid.Row="1" Background="Transparent">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="2.8*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Liste Articles -->
-            <GroupBox Header="Articles" Grid.Column="0"
-                Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
-                SnapsToDevicePixels="True">
-                <Grid Background="Transparent">
-                    <DataGrid x:Name="GridArticles"
-                    AutoGenerateColumns="False"
-                    IsReadOnly="True"
-                    SelectionMode="Single"
-                    SelectionChanged="GridArticles_SelectionChanged"
-                    Margin="0"
-                    Background="Transparent"
-                    BorderThickness="0">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}"     Width="2*"/>
-                            <DataGridTextColumn Header="PU HT"   Binding="{Binding PrixVenteHT}" Width="120" />
-                            <DataGridTextColumn Header="Stock"   Binding="{Binding StockActuel}" Width="100"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </GroupBox>
-
-            <!-- Fiche article -->
-            <GroupBox Grid.Column="2"
-          Background="Transparent" BorderThickness="1" Padding="4" Margin="0"
-          SnapsToDevicePixels="True"
-          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <GroupBox.Header>
-                    <!-- Titre + message inline juste après -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Fiche article"
-               FontSize="16" FontWeight="Bold"
-               Foreground="{DynamicResource Fore}" />
-
-                        <!-- petit espace -->
-                        <TextBlock Text=" " Width="12"/>
-
-                        <!-- OK (vert) -->
-                        <Border x:Name="StatusPanelOk"
-            Visibility="Collapsed"
-            Background="Transparent" BorderThickness="0" Padding="0">
-                            <TextBlock x:Name="StatusOkText"
-                 Foreground="#7CDA5A"  FontWeight="SemiBold"/>
-                        </Border>
-
-                        <!-- Erreur (rouge) -->
-                        <Border x:Name="StatusPanelErr"
-            Visibility="Collapsed"
-            Background="Transparent" BorderThickness="0" Padding="0" Margin="12,0,0,0">
-                            <TextBlock x:Name="StatusErrText"
-                 Foreground="#FF6B6B" FontWeight="SemiBold"/>
-                        </Border>
+                    <!-- Barre d'actions -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button x:Name="BtnNew" Content="Nouveau" Click="BtnNew_Click" Margin="0,0,8,0" Width="110"/>
+                        <Button x:Name="BtnSave" Content="Enregistrer" Click="BtnSave_Click" Margin="0,0,8,0" Width="110"/>
+                        <Button x:Name="BtnDelete" Content="Supprimer" Click="BtnDelete_Click" Margin="0,0,8,0" Width="110"/>
+                        <Button x:Name="BtnReload" Content="Recharger" Click="BtnReload_Click" Width="110"/>
                     </StackPanel>
-                </GroupBox.Header>
 
-                <Grid Margin="0" Background="Transparent">
-                    <!-- 3) TES ONGLETS (inchangés) -->
-                    <TabControl Background="Transparent" BorderThickness="0">
-                        <TabControl.Resources>
-                            <Style TargetType="TabItem">
-                                <Setter Property="Foreground" Value="{StaticResource Fore}"/>
-                                <Setter Property="Background" Value="{StaticResource Panel}"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="Margin" Value="0,0,6,0"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="TabItem">
-                                            <Border x:Name="Bd"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{StaticResource Border}"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter ContentSource="Header"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Panel}"/>
-                                                    <Setter Property="Foreground" Value="{StaticResource Fore}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsEnabled" Value="False">
-                                                    <Setter Property="Opacity" Value="0.6"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </TabControl.Resources>
-                        <!-- Onglet 1 : Fiche -->
-                        <TabItem Header="Fiche" Background="Transparent" BorderThickness="0">
-						  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="Transparent" Padding="0" Margin="0">
-							<!-- SharedSizeScope pour aligner les colonnes gauche/droite -->
-							<Grid Margin="12" Background="Transparent" Grid.IsSharedSizeScope="True">
-							  <Grid.ColumnDefinitions>
-								<!-- Forme sur 2 colonnes: libellé/champ | libellé/champ | filler | panneau images -->
-								<ColumnDefinition Width="Auto"  SharedSizeGroup="lbl"/>
-								<ColumnDefinition Width="260"  SharedSizeGroup="fld"/>
-								<ColumnDefinition Width="24"/>
-								<ColumnDefinition Width="Auto"  SharedSizeGroup="lbl"/>
-								<ColumnDefinition Width="260"  SharedSizeGroup="fld"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="280"/>
-							  </Grid.ColumnDefinitions>
+                    <!-- Form 4 colonnes: Libellé/Champ/Libellé/Champ -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <!-- Code / Libellé -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Type / Catégorie -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Cotisation / TVA -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Prix d'achat / Poids -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Prix conseillé / Prix de vente -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Stock / Seuil -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Actif / Dernière MAJ -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Code-barres / Boutons CB -->
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-							  <!-- lignes du formulaire -->
-							  <Grid.RowDefinitions>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="Auto"/>
-							  </Grid.RowDefinitions>
+                        <!-- 1) Code / Libellé -->
+                        <Label Grid.Row="0" Grid.Column="0" Content="Code"/>
+                        <TextBox x:Name="SkuBox" Grid.Row="0" Grid.Column="1" Margin="0,0,16,8"/>
+                        <Label Grid.Row="0" Grid.Column="2" Content="Libellé"/>
+                        <TextBox x:Name="LibelleBox" Grid.Row="0" Grid.Column="3" Margin="0,0,0,8"/>
 
-							  <!-- Colonne IMAGES (droite) -->
-							  <GroupBox Grid.Column="6" Grid.RowSpan="10" Header="Images (0 a 4)"
-										Background="Transparent" Padding="8" Margin="10,0,0,0"
-										BorderThickness="1">
-								<StackPanel Background="Transparent">
-								  <Button Content="Ajouter image" Click="BtnAddImage_Click" />
-                                            <!-- Vignettes images article (0..4) -->
-                                            <!-- VIGNETTES -->
-                                            <ItemsControl x:Name="ThumbsList" Margin="0,8,0,0">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel/>
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
+                        <!-- 2) Type / Catégorie -->
+                        <Label Grid.Row="1" Grid.Column="0" Content="Type"/>
+                        <ComboBox x:Name="TypeBox" Grid.Row="1" Grid.Column="1" Margin="0,0,16,8">
+                            <ComboBoxItem Content="Article" Tag="0"/>
+                            <ComboBoxItem Content="Pack" Tag="1"/>
+                        </ComboBox>
+                        <Label Grid.Row="1" Grid.Column="2" Content="Catégorie"/>
+                        <ComboBox x:Name="CategorieBox" Grid.Row="1" Grid.Column="3" Margin="0,0,0,8"/>
 
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border CornerRadius="8" Padding="4" Margin="4"
-              Background="{DynamicResource Panel}"
-              BorderBrush="{DynamicResource Select}" BorderThickness="0">
-                                                            <StackPanel>
-                                                                <Image Width="96" Height="96" Stretch="UniformToFill"
-                 Source="{Binding FullPath}" Tag="{Binding FullPath}">
-                                                                    <!-- ContextMenu autonome (pas de StaticResource) -->
-                                                                    <Image.ContextMenu>
-                                                                        <ContextMenu
-                  Background="{DynamicResource Panel}"
-                  BorderBrush="{DynamicResource Select}"
-                  Foreground="{DynamicResource Fore}"
-                  Padding="4" SnapsToDevicePixels="True">
-                                                                            <ContextMenu.Resources>
-                                                                                <Style TargetType="MenuItem">
-                                                                                    <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
-                                                                                    <Setter Property="Background" Value="Transparent"/>
-                                                                                    <Setter Property="Padding" Value="10,6"/>
-                                                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                                                    <Style.Triggers>
-                                                                                        <Trigger Property="IsHighlighted" Value="True">
-                                                                                            <Setter Property="Background" Value="{DynamicResource Select}"/>
-                                                                                        </Trigger>
-                                                                                        <Trigger Property="IsEnabled" Value="False">
-                                                                                            <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
-                                                                                        </Trigger>
-                                                                                    </Style.Triggers>
-                                                                                </Style>
-                                                                                <Style TargetType="Separator">
-                                                                                    <Setter Property="Margin" Value="4,2"/>
-                                                                                    <Setter Property="Background" Value="{DynamicResource Subtle}"/>
-                                                                                    <Setter Property="Height" Value="1"/>
-                                                                                </Style>
-                                                                            </ContextMenu.Resources>
+                        <!-- 3) Cotisation / TVA -->
+                        <Label Grid.Row="2" Grid.Column="0" Content="Cotisation"/>
+                        <ComboBox x:Name="CotisationBox" Grid.Row="2" Grid.Column="1" Margin="0,0,16,8"/>
+                        <Label Grid.Row="2" Grid.Column="2" Content="TVA"/>
+                        <ComboBox x:Name="TvaBox" Grid.Row="2" Grid.Column="3" Margin="0,0,0,8"/>
 
-                                                                            <MenuItem Header="Ouvrir le dossier" Click="Thumb_OpenFolder"/>
-                                                                            <Separator/>
-                                                                            <MenuItem Header="Supprimer" Click="Thumb_Delete" Tag="{Binding Slot}"/>
-                                                                        </ContextMenu>
-                                                                    </Image.ContextMenu>
-                                                                </Image>
+                        <!-- 4) Prix d'achat / Poids -->
+                        <Label Grid.Row="3" Grid.Column="0" Content="Prix d'achat HT"/>
+                        <TextBox x:Name="PrixAchatBox" Grid.Row="3" Grid.Column="1" Margin="0,0,16,8" TextChanged="PrixAchatBox_TextChanged"/>
+                        <Label Grid.Row="3" Grid.Column="2" Content="Poids (g)"/>
+                        <TextBox x:Name="PoidsBox" Grid.Row="3" Grid.Column="3" Margin="0,0,0,8"/>
 
-                                                                <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0"
-                     Foreground="{DynamicResource Subtle}"
-                     Text="{Binding Slot, StringFormat='#{0}'}"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-							  </GroupBox>
+                        <!-- 5) Prix conseillé / Prix de vente -->
+                        <Label Grid.Row="4" Grid.Column="0" Content="Prix conseillé HT"/>
+                        <TextBox x:Name="PrixConseilleBox" Grid.Row="4" Grid.Column="1" Margin="0,0,16,8" IsReadOnly="True"/>
+                        <Label Grid.Row="4" Grid.Column="2" Content="Prix de vente HT"/>
+                        <TextBox x:Name="PrixVenteBox" Grid.Row="4" Grid.Column="3" Margin="0,0,0,8"/>
 
-							  <!-- Lignes G/D (espacement vertical uniforme via Margin Top = 6) -->
+                        <!-- 6) Stock / Seuil -->
+                        <Label Grid.Row="5" Grid.Column="0" Content="Stock actuel"/>
+                        <TextBox x:Name="StockBox" Grid.Row="5" Grid.Column="1" Margin="0,0,16,8"/>
+                        <Label Grid.Row="5" Grid.Column="2" Content="Seuil alerte"/>
+                        <TextBox x:Name="SeuilBox" Grid.Row="5" Grid.Column="3" Margin="0,0,0,8"/>
 
-							  <!-- Code -->
-							  <Label Grid.Row="0" Grid.Column="0" Content="Code" VerticalAlignment="Center" Margin="0,0,8,0"/>
-							  <TextBox x:Name="CodeBox" Grid.Row="0" Grid.Column="1" MinHeight="28"/>
-							  <Label Grid.Row="0" Grid.Column="3" Content="" /> <!-- vide pour garder la grille propre -->
+                        <!-- 7) Actif / Dernière MAJ -->
+                        <Label Grid.Row="6" Grid.Column="0" Content="Actif"/>
+                        <CheckBox x:Name="ActifBox" Grid.Row="6" Grid.Column="1" Margin="0,0,16,8"/>
+                        <Label Grid.Row="6" Grid.Column="2" Content="Dernière mise à jour"/>
+                        <TextBlock x:Name="DerniereMajText" Grid.Row="6" Grid.Column="3" Margin="0,0,0,8"/>
 
-							  <!-- Libellé (champ large) -->
-							  <Label Grid.Row="1" Grid.Column="0" Content="Libellé" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="LibelleBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" MinHeight="28" Margin="0,6,0,0"/>
+                        <!-- 8) Code-barres / Boutons CB -->
+                        <Label Grid.Row="7" Grid.Column="0" Content="Code-barres"/>
+                        <TextBox x:Name="CodeBarresBox" Grid.Row="7" Grid.Column="1" Margin="0,0,16,0"/>
+                        <StackPanel Grid.Row="7" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Content="Générer" Margin="0,0,8,0"/>
+                            <Button Content="Scanner"/>
+                        </StackPanel>
+                    </Grid>
 
-							  <!-- Type -->
-							  <Label Grid.Row="2" Grid.Column="0" Content="Type" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,6,0,0">
-								<RadioButton x:Name="TypeArticleRadio" Content="Article" GroupName="TypeA" Checked="TypeRadio_Checked" Margin="0,0,12,0"/>
-								<RadioButton x:Name="TypePackRadio"    Content="Pack"    GroupName="TypeA" Checked="TypeRadio_Checked"/>
-							  </StackPanel>
-
-							  <!-- Catégorie / Cotisation -->
-							  <Label Grid.Row="3" Grid.Column="0" Content="Catégorie" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <ComboBox x:Name="CategorieBox" Grid.Row="3" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"
-										Style="{StaticResource ComboBox.Dark.Flat}"
-										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
-										DisplayMemberPath="Name" SelectedValuePath="Id"/>
-							  <Label Grid.Row="3" Grid.Column="3" Content="Cotisation" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <ComboBox x:Name="CotisationBox" Grid.Row="3" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"
-										Style="{StaticResource ComboBox.Dark.Flat}"
-										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
-										DisplayMemberPath="Name" SelectedValuePath="Id"
-										SelectionChanged="CotisationBox_SelectionChanged"/>
-
-							  <!-- TVA / Prix vente HT -->
-							  <Label Grid.Row="4" Grid.Column="0" Content="TVA" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <ComboBox x:Name="TvaBox" Grid.Row="4" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"
-										IsEnabled="False"
-										Style="{StaticResource ComboBox.Dark.Flat}"
-										ItemContainerStyle="{DynamicResource ComboBoxItem.Dark}"
-										DisplayMemberPath="Name" SelectedValuePath="Id"
-										SelectionChanged="TvaBox_SelectionChanged"/>
-							  <Label Grid.Row="4" Grid.Column="3" Content="Prix vente HT" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="PrixVenteBox" Grid.Row="4" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
-
-							  <!-- Prix achat HT / Poids -->
-							  <Label Grid.Row="5" Grid.Column="0" Content="Prix achat HT" VerticalAlignment="Center" Margin="0,6,8,0"/>
-                              <TextBox x:Name="PrixAchatBox" TextChanged="PrixAchatBox_TextChanged" Grid.Row="5" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
-							  <Label Grid.Row="5" Grid.Column="3" Content="Poids (g)" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="PoidsBox" Grid.Row="5" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
-
-							  <!-- Prix conseillé (label en gras) -->
-							  <Label Grid.Row="6" Grid.Column="0" Content="Prix conseillé..." VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBlock x:Name="PrixConseilleLabel" Grid.Row="6" Grid.Column="1" Margin="0,6,0,0" FontWeight="Bold" />
-
-							  <!-- Stock / Seuil alerte -->
-							  <Label Grid.Row="7" Grid.Column="0" Content="Stock actuel" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="StockBox" Grid.Row="7" Grid.Column="1" MinHeight="28" Margin="0,6,0,0"/>
-							  <Label Grid.Row="7" Grid.Column="3" Content="Seuil alerte" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBox x:Name="SeuilBox" Grid.Row="7" Grid.Column="4" MinHeight="28" Margin="0,6,0,0"/>
-
-							  <!-- Actif / Dernière MAJ -->
-							  <CheckBox x:Name="ActifBox" Grid.Row="8" Grid.Column="1" Content="Actif" Margin="0,6,0,0" VerticalAlignment="Center"/>
-							  <Label Grid.Row="8" Grid.Column="3" Content="Dernière MAJ :" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <TextBlock x:Name="DerniereMajLabel" Grid.Row="8" Grid.Column="4" Margin="0,6,0,0" VerticalAlignment="Center"/>
-
-							  <!-- Code-barres + bouton générer aligné -->
-							  <Label Grid.Row="9" Grid.Column="0" Content="Code-barres" VerticalAlignment="Center" Margin="0,6,8,0"/>
-							  <Grid Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,6,0,0">
-								<Grid.ColumnDefinitions>
-								  <ColumnDefinition Width="*"/>
-								  <ColumnDefinition Width="140"/>
-								</Grid.ColumnDefinitions>
-								<TextBox x:Name="BarcodeBox" Grid.Column="0" MinHeight="28"/>
-								<Button Grid.Column="1" Content="Générer EAN-13" Margin="8,0,0,0" Click="BtnGenBarcode_Click"/>
-							  </Grid>
-							</Grid>
-						  </ScrollViewer>
-						</TabItem>
-                        <!-- Onglet 2 : Déclinaisons & Pack -->
-                        <TabItem Header="Déclinaisons &amp; Pack" Background="{x:Null}" BorderThickness="0">
-                            <Grid Margin="8" Background="Transparent">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <GroupBox Header="Déclinaisons" Grid.Column="0"
-                          Background="Transparent" BorderThickness="1" Padding="6">
-                                    <DockPanel LastChildFill="True">
-                                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
-                                            <Button Content="Ajouter"   Click="BtnAddVariant_Click"    Margin="0,0,8,0"/>
-                                            <Button Content="Supprimer" Click="BtnRemoveVariant_Click"/>
-                                        </StackPanel>
-                                        <DataGrid x:Name="GridVariants"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="False"
-                                CellEditEnding="GridVariants_CellEditEnding"
-                                RowEditEnding="GridVariants_RowEditEnding"
-                                CurrentCellChanged="GridVariants_CurrentCellChanged"
-                              SelectionMode="Single"
-                              Background="Transparent"
-                              BorderThickness="0">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Nom"           Binding="{Binding Nom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"          Width="2*"/>
-                                                <DataGridTextColumn Header="Prix achat HT" Binding="{Binding PrixAchatHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
-                                                <DataGridTextColumn Header="PU HT"         Binding="{Binding PrixVenteHT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
-                                                <DataGridTextColumn Header="Stock"         Binding="{Binding StockActuel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
-                                                <DataGridTextColumn Header="Seuil alerte"  Binding="{Binding SeuilAlerte, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="*" />
-                                                <!-- Code-barres avec menu contextuel “Générer” -->
-                                                <DataGridTemplateColumn Header="Code-barres" Width="2*">
-                                                    <DataGridTemplateColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <TextBlock Text="{Binding CodeBarres}" ContextMenuOpening="Variant_Codebar_ContextMenuOpening">
-                                                                <TextBlock.ContextMenu>
-                                                                    <ContextMenu
-      Background="{DynamicResource Panel}"
-      BorderBrush="{DynamicResource Select}"
-      Foreground="{DynamicResource Fore}"
-      Padding="4"
-      SnapsToDevicePixels="True">
-
-                                                                        <!-- styles locaux au menu (identiques à ceux des images) -->
-                                                                        <ContextMenu.Resources>
-                                                                            <Style TargetType="MenuItem">
-                                                                                <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
-                                                                                <Setter Property="Background" Value="Transparent"/>
-                                                                                <Setter Property="Padding" Value="10,6"/>
-                                                                                <Setter Property="BorderThickness" Value="0"/>
-                                                                                <Style.Triggers>
-                                                                                    <Trigger Property="IsHighlighted" Value="True">
-                                                                                        <Setter Property="Background" Value="{DynamicResource Select}"/>
-                                                                                    </Trigger>
-                                                                                    <Trigger Property="IsEnabled" Value="False">
-                                                                                        <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
-                                                                                    </Trigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-
-                                                                            <Style TargetType="Separator">
-                                                                                <Setter Property="Margin" Value="4,2"/>
-                                                                                <Setter Property="Background" Value="{DynamicResource Subtle}"/>
-                                                                                <Setter Property="Height" Value="1"/>
-                                                                            </Style>
-                                                                        </ContextMenu.Resources>
-
-                                                                        <MenuItem Header="Générer EAN-13" Click="Variant_GenBarcode_Click"/>
-                                                                    </ContextMenu>
-                                                                </TextBlock.ContextMenu>
-                                                            </TextBlock>
-                                                        </DataTemplate>
-                                                    </DataGridTemplateColumn.CellTemplate>
-                                                </DataGridTemplateColumn>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </DockPanel>
-                                </GroupBox>
-
-                                <GroupBox Header="Pack (si Type=Pack)" Grid.Column="2"
-                                    Background="Transparent" BorderThickness="1" Padding="6">
-                                    <Grid Background="Transparent">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- barre d’actions -->
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Background="Transparent" Margin="0,0,0,6">
-                                            <Button Content="Ajouter au pack…" Click="BtnAddToPack_Click" Margin="0,0,8,0"/>
-                                            <Button Content="Supprimer" Click="BtnRemovePackRow_Click"/>
-                                        </StackPanel>
-
-                                        <!-- grille pack -->
-                                        <DataGrid x:Name="GridPack" Grid.Row="1"
-                                          AutoGenerateColumns="False"
-                                          CanUserAddRows="False" CanUserDeleteRows="False"
-                                          IsReadOnly="False"
-                                          SelectionMode="Single"
-                                          SelectionUnit="FullRow"
-                                          RowHeaderWidth="0"
-                                          CellEditEnding="GridPack_CellEditEnding">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Nom" Width="3*" Binding="{Binding DisplayName}" IsReadOnly="True"/>
-                                                <DataGridTextColumn Header="Qté" Width="80"
-                                                    Binding="{Binding Quantite, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=0.##}"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </Grid>
-                                </GroupBox>
-                            </Grid>
+                    <!-- Onglets -->
+                    <TabControl Grid.Row="3">
+                        <TabItem Header="Variantes">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Button Content="Ajouter une variante" Width="160" Margin="0,0,8,0" Click="BtnAddVariant_Click"/>
+                                    <Button Content="Enregistrer la variante" Width="180" Margin="0,0,8,0" Click="BtnSaveVariant_Click"/>
+                                    <Button Content="Supprimer la variante" Width="160" Click="BtnDeleteVariant_Click"/>
+                                </StackPanel>
+                                <DataGrid x:Name="GridVariants" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Nom" Binding="{Binding Nom}" Width="2*"/>
+                                        <DataGridTextColumn Header="Prix achat" Binding="{Binding PrixAchatHT, StringFormat=0.00}" Width="*"/>
+                                        <DataGridTextColumn Header="Prix vente" Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*"/>
+                                        <DataGridTextColumn Header="Stock" Binding="{Binding StockActuel, StringFormat=0}" Width="*"/>
+                                        <DataGridTextColumn Header="Seuil" Binding="{Binding SeuilAlerte, StringFormat=0}" Width="*"/>
+                                        <DataGridTextColumn Header="Code-barres" Binding="{Binding CodeBarres}" Width="2*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Composition du pack">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Button Content="Ajouter au pack" Width="140" Margin="0,0,8,0" Click="BtnAddToPack_Click"/>
+                                    <Button Content="Retirer" Width="100" Margin="0,0,8,0" Click="BtnRemovePackItem_Click"/>
+                                    <TextBlock Text="Qté:" VerticalAlignment="Center" Margin="12,0,8,0"/>
+                                    <TextBox x:Name="QtyBox" Width="80" Text="1"/>
+                                    <Button Content="Appliquer Qté" Width="120" Margin="8,0,0,0" Click="BtnUpdatePackQty_Click"/>
+                                </StackPanel>
+                                <DataGrid x:Name="GridPack" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"/>
+                            </DockPanel>
                         </TabItem>
                     </TabControl>
                 </Grid>
-            </GroupBox>
-        </Grid>
+            </ScrollViewer>
+        </GroupBox>
+
+        <!-- Séparateur -->
+        <Border Grid.Column="3" Background="Transparent"/>
+
+        <!-- ===================== PANNEAU IMAGES (droite) ===================== -->
+        <GroupBox Grid.Column="4" Header="Images"
+              HorizontalAlignment="Left" HorizontalContentAlignment="Stretch"
+              MinWidth="260" MaxWidth="360">
+            <!-- Remplacer le contenu par ton XAML d'images existant si besoin (ouvrir dossier / supprimer) -->
+            <StackPanel Margin="6">
+                <TextBlock Text="Zone images (0..4) — placeholder"/>
+            </StackPanel>
+        </GroupBox>
     </Grid>
 </UserControl>

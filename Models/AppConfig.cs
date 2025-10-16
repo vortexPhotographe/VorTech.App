@@ -10,6 +10,9 @@ namespace VorTech.App.Models
         public string? Iban  { get; set; }
         public string? Bic   { get; set; }
         public string? BusinessName { get; set; }
+        public string TaxMode { get; set; } = "Micro";   // "Micro" | "TVA"
+        public int? DefaultCotisationTypeId { get; set; } = null;
+        public int? DefaultTvaRateId { get; set; } = null;
 
         public ObservableCollection<PaymentMethod> PaymentMethods { get; set; } = new();
     }
