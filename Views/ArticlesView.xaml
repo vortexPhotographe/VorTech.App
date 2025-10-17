@@ -174,15 +174,23 @@
                 </StackPanel>
 
                 <!-- Liste -->
-                <DataGrid x:Name="GridArticles" Margin="6" DockPanel.Dock="Bottom"
-                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
-                  SelectionMode="Single" SelectionUnit="FullRow"
+                <DataGrid x:Name="GridArticles"
+                  Margin="6"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserResizeRows="False"
+                  CanUserReorderColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  SelectionUnit="FullRow"
                   HeadersVisibility="Column"
-                  SelectionChanged="GridArticles_SelectionChanged">
+                  SelectionChanged="GridArticles_SelectionChanged"
+                  BeginningEdit="GridArticles_BeginningEdit">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}" Width="2*"/>
-                        <DataGridTextColumn Header="Prix"    Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*"/>
-                        <DataGridTextColumn Header="Stock"   Binding="{Binding StockActuel, StringFormat=0}"   Width="*"/>
+                        <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}" Width="2*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Prix"    Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Stock"   Binding="{Binding StockActuel, StringFormat=0}"    Width="*" IsReadOnly="True"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
@@ -425,14 +433,53 @@
             <!-- Pack -->
             <GroupBox Header="Composition du pack" Grid.Column="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,6,6,8">
-                        <Button Content="Ajouter au pack" Width="140" Margin="0,0,8,0" Click="BtnAddToPack_Click"/>
-                        <Button Content="Retirer"        Width="100" Margin="0,0,8,0" Click="BtnRemovePackItem_Click"/>
-                        <TextBlock Text="Qté:" VerticalAlignment="Center" Margin="12,0,8,0"/>
-                        <TextBox x:Name="QtyBox" Width="80" Text="1"/>
-                        <Button Content="Appliquer Qté" Width="120" Margin="8,0,0,0" Click="BtnUpdatePackQty_Click"/>
-                    </StackPanel>
-                    <DataGrid x:Name="GridPack" Margin="6" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"/>
+                    <!-- Barre d’actions Pack -->
+                    <Grid DockPanel.Dock="Top" Margin="6,6,6,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Ajouter au pack" Width="140" Margin="0,0,8,0"
+                            Click="BtnAddToPack_Click"/>
+                        <Button Content="Retirer" Grid.Column="1" Width="100" Margin="0,0,8,0"
+                            Click="BtnRemovePackItem_Click"/>
+                        <!-- pousse à droite -->
+                        <Button x:Name="BtnSavePack" Grid.Column="3"
+                          Content="Sauvegarder le pack" Width="160"
+                          Click="BtnSavePack_Click"/>
+                    </Grid>
+                    <DataGrid x:Name="GridPack"
+                          Margin="6"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          HeadersVisibility="Column"
+                          IsReadOnly="False">
+                        <DataGrid.Columns>
+                            <!-- Libellé combiné -->
+                            <DataGridTextColumn Header="Article / Variante"
+                                Binding="{Binding Display}"
+                                Width="3*"
+                                IsReadOnly="True"/>
+                            <!-- Qté éditable -->
+                            <DataGridTemplateColumn Header="Qté" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Quantite, StringFormat=0}" HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Quantite, UpdateSourceTrigger=PropertyChanged}"
+                                           HorizontalContentAlignment="Center"
+                                           PreviewTextInput="NumericOnly_PreviewTextInput"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </DockPanel>
             </GroupBox>
         </Grid>

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using VorTech.App.Services;
 
 namespace VorTech.App.Views
@@ -80,5 +81,8 @@ namespace VorTech.App.Views
             DialogResult = true;
             Close();
         }
+
+        private void GridChoices_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    => BtnAdd_Click(sender, e);
     }
 }

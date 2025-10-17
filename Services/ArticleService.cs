@@ -35,6 +35,12 @@ namespace VorTech.App.Services
             return list;
         }
 
+        public Article? GetById(int id)
+        {
+            // Appelle le helper privé
+            return Get(id);
+        }
+
         public int Insert(Article a)
         {
             a.DerniereMaj = DateOnly.FromDateTime(DateTime.UtcNow);

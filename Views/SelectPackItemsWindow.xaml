@@ -5,35 +5,44 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource Panel}">
-    <DockPanel>
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- barre recherche -->
+            <RowDefinition Height="*"/>
+            <!-- DataGrid -->
+            <RowDefinition Height="Auto"/>
+            <!-- footer boutons -->
+        </Grid.RowDefinitions>
+
         <!-- Barre de recherche -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8">
-            <TextBlock Text="Rechercher:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource Fore}"/>
-            <TextBox x:Name="SearchBox" Width="240" TextChanged="SearchBox_TextChanged"/>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Rechercher:" VerticalAlignment="Center" Margin="0,0,8,0"
+               Foreground="{DynamicResource Fore}"/>
+            <TextBox x:Name="SearchBox" Width="240"
+             TextChanged="SearchBox_TextChanged"/>
         </StackPanel>
 
-        <!-- Grille des lignes sélectionnables (une ligne par article simple sans variantes, ou par VARIANTE) -->
-        <DataGrid x:Name="GridChoices"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False" CanUserDeleteRows="False"
-                  SelectionMode="Extended" SelectionUnit="FullRow"
-                  Margin="8" HeadersVisibility="Column"
-                  Background="{DynamicResource Panel}" Foreground="{DynamicResource Fore}">
+        <!-- Grille des lignes sélectionnables -->
+        <DataGrid x:Name="GridChoices" Grid.Row="1"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False" CanUserDeleteRows="False"
+            IsReadOnly="True"
+            SelectionMode="Extended"
+            SelectionUnit="FullRow"
+            HeadersVisibility="Column">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Article / Variante" Binding="{Binding DisplayName}" Width="*"/>
+                <DataGridTextColumn Header="Article / Variante"
+                          Binding="{Binding DisplayName}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Footer: Qté par défaut + boutons -->
-        <DockPanel DockPanel.Dock="Bottom" LastChildFill="True" Margin="8">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                <TextBlock Text="Quantité par défaut:" Margin="0,0,8,0" Foreground="{DynamicResource Fore}"/>
-                <TextBox x:Name="QtyDefaultBox" Width="80" Text="1"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                <Button Content="Annuler" Width="110" Margin="0,0,8,0" Click="BtnCancel_Click"/>
-                <Button Content="Ajouter à la composition" Width="180" Click="BtnAdd_Click"/>
-            </StackPanel>
-        </DockPanel>
-    </DockPanel>
+        <!-- Footer: Qté par défaut + OK / Annuler -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <TextBlock Text="Qté :" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBox x:Name="QtyDefaultBox" Width="80" Text="1" Margin="0,0,12,0"/>
+            <Button x:Name="BtnAdd"    Content="OK"      Width="100" Margin="0,0,8,0" Click="BtnAdd_Click"/>
+            <Button x:Name="BtnCancel" Content="Annuler" Width="100"               Click="BtnCancel_Click"/>
+        </StackPanel>
+    </Grid>
 </Window>

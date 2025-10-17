@@ -1,13 +1,14 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Windows.Media.Imaging;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using VorTech.App.Models;
 using VorTech.App.Services;
 
@@ -401,34 +402,31 @@ namespace VorTech.App.Views
                 return;
             }
 
+            // Commit des éditions en cours
             GridVariants.CommitEdit(DataGridEditingUnit.Cell, true);
             GridVariants.CommitEdit(DataGridEditingUnit.Row, true);
 
-            // 1) Si le CB est vide -> on le génère de façon déterministe: (Libellé article + Nom variante)
-            if (string.IsNullOrWhiteSpace(v.CodeBarres))
-                v.CodeBarres = GenerateVariantBarcodeFromNames(v.Nom);
+            // Assurer un code-barres unique :
+            // - s'il est vide -> générer
+            // - s'il est en collision (BDD ou une autre ligne) -> régénérer
+            var code = v.CodeBarres?.Trim();
+            bool needGenerate =
+                string.IsNullOrWhiteSpace(code)
+                || _articles.BarcodeExists(code!, excludeArticleId: _current.Id)
+                || _variants.Where(x => !ReferenceEquals(x, v))
+                            .Any(x => string.Equals(x.CodeBarres?.Trim(), code, StringComparison.Ordinal));
 
-            var code = v.CodeBarres!.Trim();
-
-            // 2) Unicité BDD (Articles + Variantes)
-            if (_articles.BarcodeExists(code, excludeArticleId: _current.Id))
+            if (needGenerate)
             {
-                MessageBox.Show($"Ce code-barres ({code}) est déjà utilisé.");
-                return;
+                v.CodeBarres = ComputeUniqueVariantBarcode(v.Nom, exclude: v);
+                code = v.CodeBarres!;
             }
 
-            // 3) Unicité locale (autres variantes du même article)
-            if (_variants.Where(x => !ReferenceEquals(x, v))
-                         .Any(x => string.Equals(x.CodeBarres?.Trim(), code, StringComparison.OrdinalIgnoreCase)))
-            {
-                MessageBox.Show("Ce code-barres existe déjà sur une autre variante de cet article.");
-                return;
-            }
-
-            // 4) Persistance
+            // Persistance
             if (v.Id == 0) v.Id = _articles.InsertVariant(v);
             else _articles.UpdateVariant(v);
 
+            // Reload propre
             LoadVariants(_current.Id);
             MessageBox.Show("Variante enregistrée.");
         }
@@ -461,6 +459,7 @@ namespace VorTech.App.Views
             _articles.RecomputePackAggregates(_current.Id);
             _pack = new ObservableCollection<PackItem>(_articles.GetPackItems(_current.Id));
             GridPack.ItemsSource = _pack;
+            ReloadPackGrid();
             UpdateComputedStates();
         }
 
@@ -470,22 +469,73 @@ namespace VorTech.App.Views
             _articles.DeletePackItem(it.Id);
             _articles.RecomputePackAggregates(_current!.Id);
             _pack.Remove(it);
+            ReloadPackGrid();
             UpdateComputedStates();
         }
 
-        private void BtnUpdatePackQty_Click(object sender, RoutedEventArgs e)
+        private class PackRowVM
         {
-            if (GridPack.SelectedItem is not PackItem it) return;
-            if (!decimal.TryParse(QtyBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var q) || q < 1)
+            public int Id { get; set; }                 // PackItems.Id
+            public int ArticleItemId { get; set; }
+            public int? VariantId { get; set; }
+
+            public string Display { get; set; } = "";   // "Libellé" ou "Libellé — Variante"
+            public int Quantite { get; set; }           // entier >= 1
+        }
+
+        private void ReloadPackGrid()
+        {
+            if (_current == null || _current.Id == 0)
             {
-                MessageBox.Show("Quantité invalide (>=1)");
+                GridPack.ItemsSource = null;
                 return;
             }
-            _articles.UpdatePackItem(it.Id, q);
-            _articles.RecomputePackAggregates(_current!.Id);
-            it.Quantite = (double)q;
-            GridPack.Items.Refresh();
+
+            var items = _articles.GetPackItems(_current.Id);
+            var vms = items.Select(it =>
+            {
+                var a = _articles.GetById(it.ArticleItemId)!;
+                string disp = a.Libelle;
+                if (it.VariantId.HasValue)
+                {
+                    var v = _articles.GetVariantById(it.VariantId.Value);
+                    if (v != null) disp = $"{a.Libelle} — {v.Nom}";
+                }
+                return new PackRowVM
+                {
+                    Id = it.Id,
+                    ArticleItemId = it.ArticleItemId,
+                    VariantId = it.VariantId,
+                    Display = disp,
+                    Quantite = (int)Math.Max(1, Math.Round((decimal)it.Quantite, 0))
+                };
+            }).ToList();
+
+            GridPack.ItemsSource = new ObservableCollection<PackRowVM>(vms);
+        }
+
+        private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !e.Text.All(char.IsDigit);
+        }
+
+        private void BtnSavePack_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null || _current.Id == 0) return;
+
+            // Récupère les lignes affichées
+            if (GridPack.ItemsSource is not IEnumerable<PackRowVM> rows) return;
+
+            foreach (var vm in rows)
+            {
+                var q = vm.Quantite < 1 ? 1 : vm.Quantite;
+                _articles.UpdatePackItem(vm.Id, q);
+            }
+
+            _articles.RecomputePackAggregates(_current.Id);
+            ReloadPackGrid();
             UpdateComputedStates();
+            MessageBox.Show("Pack enregistré.");
         }
 
         // --------------- Prix conseillé ---------------
@@ -537,21 +587,21 @@ namespace VorTech.App.Views
 
         // --------------- BareCode ---------------
         private void BtnGenBarcode_Click(object sender, RoutedEventArgs e)
-{
-    if (_current == null)
-    {
-        MessageBox.Show("Sélectionnez ou créez un article avant de générer un code-barres.");
-        return;
-    }
+        {
+            if (_current == null)
+            {
+                MessageBox.Show("Sélectionnez ou créez un article avant de générer un code-barres.");
+                return;
+            }
 
-    // seed déterministe = Libellé + Code
-    string seed = $"{_current.Libelle}|{_current.Code}";
-    string candidate = ComputeDeterministicBarcode("200", seed, _current.Id);
+            // seed déterministe = Libellé + Code
+            string seed = $"{_current.Libelle}|{_current.Code}";
+            string candidate = ComputeDeterministicBarcode("200", seed, _current.Id);
 
-    CodeBarresBox.Text = candidate;
-    CodeBarresBox.Focus();
-    CodeBarresBox.CaretIndex = CodeBarresBox.Text.Length;
-}
+            CodeBarresBox.Text = candidate;
+            CodeBarresBox.Focus();
+            CodeBarresBox.CaretIndex = CodeBarresBox.Text.Length;
+        }
 
         private void BtnScanBarcode_Click(object sender, RoutedEventArgs e)
         {
@@ -618,6 +668,31 @@ namespace VorTech.App.Views
         }
 
         // --------------- Helpers ---------------
+        // Génère un EAN-13 (préfixe 201) à partir de "LibelléArticle|NomVariante",
+        // et, en cas de collision (BDD ou dans la liste en cours), essaie seed#1, seed#2...
+        private string ComputeUniqueVariantBarcode(string? variantName, ArticleVariant? exclude = null)
+        {
+            string art = _current?.Libelle ?? "";
+            string baseSeed = $"{art}|{(variantName ?? "").Trim()}";
+
+            for (int i = 0; i < 50; i++)
+            {
+                string seed = (i == 0) ? baseSeed : $"{baseSeed}#{i}";
+                string code = BarcodeUtil.GenerateEAN13(seed, prefix: "201");
+
+                bool usedInDb = _articles.BarcodeExists(code, excludeArticleId: _current?.Id);
+                bool usedLocal = _variants != null && _variants.Any(x =>
+                    !ReferenceEquals(x, exclude) &&
+                    string.Equals(x.CodeBarres?.Trim(), code, StringComparison.Ordinal));
+
+                if (!usedInDb && !usedLocal)
+                    return code;
+            }
+
+            // Fallback ultra-rare
+            return BarcodeUtil.GenerateEAN13(Guid.NewGuid().ToString("N"), prefix: "201");
+        }
+
         private static decimal ParseDec(string? s, int decimals)
         {
             if (!decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var v)) v = 0m;
@@ -672,6 +747,11 @@ namespace VorTech.App.Views
         private void ActifBox_Checked(object sender, RoutedEventArgs e)
         {
 
+        }
+        private void GridArticles_BeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
+        {
+            // sécurité : on bloque toute entrée en édition
+            e.Cancel = true;
         }
     }
 }
