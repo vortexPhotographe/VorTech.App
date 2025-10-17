@@ -465,53 +465,49 @@ namespace VorTech.App.Views
 
         private void BtnRemovePackItem_Click(object sender, RoutedEventArgs e)
         {
-            if (GridPack.SelectedItem is not PackItem it) return;
-            _articles.DeletePackItem(it.Id);
-            _articles.RecomputePackAggregates(_current!.Id);
-            _pack.Remove(it);
-            ReloadPackGrid();
-            UpdateComputedStates();
+            if (_current == null || _current.Id == 0)
+            {
+                //DebugMsg.Show("Remove", "Aucun article pack sélectionné.");
+                return;
+            }
+
+            // la grille contient des PackRowVM
+            if (GridPack.SelectedItem is not PackRowVM vm)
+            {
+                //DebugMsg.Show("Remove", "Aucune ligne sélectionnée dans la composition du pack.");
+                return;
+            }
+            _articles.DeletePackItem(vm.Id);                  // <- on supprime via l'Id de PackItems
+            _articles.RecomputePackAggregates(_current.Id);   // recalcule PA/Poids/Stock
+            ReloadPackGrid();                                  // recharge la grille (affichage noms + qté)
+            UpdateComputedStates();                            // rafraîchit les champs calculés à l’écran
         }
 
         private class PackRowVM
         {
-            public int Id { get; set; }                 // PackItems.Id
-            public int ArticleItemId { get; set; }
-            public int? VariantId { get; set; }
-
-            public string Display { get; set; } = "";   // "Libellé" ou "Libellé — Variante"
-            public int Quantite { get; set; }           // entier >= 1
+            public int Id { get; set; }              // PackItems.Id
+            public string Display { get; set; } = ""; // "Libellé" ou "Libellé — Variante"
+            public int Quantite { get; set; }        // entier >= 1
         }
 
         private void ReloadPackGrid()
         {
-            if (_current == null || _current.Id == 0)
+            if (_current == null || _current.Id == 0 || _current.Type != ArticleType.Pack)
             {
                 GridPack.ItemsSource = null;
                 return;
             }
 
-            var items = _articles.GetPackItems(_current.Id);
-            var vms = items.Select(it =>
-            {
-                var a = _articles.GetById(it.ArticleItemId)!;
-                string disp = a.Libelle;
-                if (it.VariantId.HasValue)
-                {
-                    var v = _articles.GetVariantById(it.VariantId.Value);
-                    if (v != null) disp = $"{a.Libelle} — {v.Nom}";
-                }
-                return new PackRowVM
-                {
-                    Id = it.Id,
-                    ArticleItemId = it.ArticleItemId,
-                    VariantId = it.VariantId,
-                    Display = disp,
-                    Quantite = (int)Math.Max(1, Math.Round((decimal)it.Quantite, 0))
-                };
-            }).ToList();
+            var rows = _articles.GetPackItemsWithNames(_current.Id)
+                                .Select(t => new PackRowVM
+                                {
+                                    Id = t.PackItemId,
+                                    Display = t.DisplayName,
+                                    Quantite = (int)Math.Max(1, Math.Round(t.Quantite, 0))
+                                })
+                                .ToList();
 
-            GridPack.ItemsSource = new ObservableCollection<PackRowVM>(vms);
+            GridPack.ItemsSource = new ObservableCollection<PackRowVM>(rows);
         }
 
         private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -523,7 +519,10 @@ namespace VorTech.App.Views
         {
             if (_current == null || _current.Id == 0) return;
 
-            // Récupère les lignes affichées
+            // commit des éditions en cours (sinon la dernière cellule n'est pas prise)
+            GridPack.CommitEdit(DataGridEditingUnit.Cell, true);
+            GridPack.CommitEdit(DataGridEditingUnit.Row, true);
+
             if (GridPack.ItemsSource is not IEnumerable<PackRowVM> rows) return;
 
             foreach (var vm in rows)
@@ -738,7 +737,10 @@ namespace VorTech.App.Views
                 _current = a;
                 BindToForm();
                 LoadArticleImages();
+                if (_current.Type == ArticleType.Pack) ReloadPackGrid();
+                else GridPack.ItemsSource = null;
             }
+
         }
         private void PrixAchatBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshPrixConseille();
         private void CotisationBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => RefreshPrixConseille();
