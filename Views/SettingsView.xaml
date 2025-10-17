@@ -1,71 +1,182 @@
 <UserControl x:Class="VorTech.App.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Grid Margin="12">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="*"/>
-    </Grid.RowDefinitions>
-
-    <!-- Profil fiscal (Micro) -->
-    <GroupBox Header="Profil fiscal (Micro)">
-      <StackPanel Orientation="Horizontal">
-        <CheckBox Content="Micro-entrepreneur — TVA non applicable (art. 293 B du CGI)"
-                  IsChecked="{Binding IsMicro, Mode=TwoWay}"/>
-      </StackPanel>
-    </GroupBox>
-
-    <!-- Moyens de règlement -->
-    <GroupBox Grid.Row="1" Header="Moyens de règlement" Margin="0,8,0,0">
-      <Grid Margin="10">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="*"/>
-          <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <DataGrid x:Name="GridPay" ItemsSource="{Binding PaymentMethods}" AutoGenerateColumns="False"
-                  CanUserAddRows="True" CanUserDeleteRows="True" Margin="0,0,0,8">
-          <DataGrid.Columns>
-            <DataGridTextColumn Header="Nom" Binding="{Binding Name}" Width="2*"/>
-            <DataGridTextColumn Header="Frais fixes (€)" Binding="{Binding FixedFee}" Width="*"/>
-            <DataGridTextColumn Header="Commission (%)" Binding="{Binding PercentFee}" Width="*"/>
-          </DataGrid.Columns>
-        </DataGrid>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="Enregistrer" Click="SaveSettings_Click"/>
-        </StackPanel>
-      </Grid>
-    </GroupBox>
-
-    <!-- Identité & Banque -->
-    <GroupBox Grid.Row="2" Header="Identité &amp; Banque" Margin="0,8,0,0">
-      <Grid Margin="10">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="700">
+    <Grid Margin="12">
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="200"/>
-          <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="220"/>
+            <!-- sidebar -->
+            <ColumnDefinition Width="12"/>
+            <ColumnDefinition Width="*"/>
+            <!-- content -->
         </Grid.ColumnDefinitions>
 
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto"/>
-          <RowDefinition Height="Auto"/>
-          <RowDefinition Height="Auto"/>
-          <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <!-- Sidebar -->
+        <StackPanel Grid.Column="0" Orientation="Vertical">
+            <TextBlock Text="Réglages" FontWeight="Bold" Margin="0,0,0,8"/>
+            <Button Content="Général"   Margin="0,0,0,6" Click="BtnShowGeneral_Click"/>
+            <Button Content="Articles"   Margin="0,0,0,6" Click="BtnShowArticles_Click"/>
+            <Button Content="Banque (plus tard)" IsEnabled="False" Margin="0,0,0,6"/>
+            <Button Content="Devis &amp; Factures (plus tard)" IsEnabled="False" Margin="0,0,0,6"/>
+        </StackPanel>
 
-        <Label Grid.Row="0" Grid.Column="0" Content="SIREN / SIRET"/>
-        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Siret, Mode=TwoWay}" />
+        <!-- PANELS -->
+        <Grid Grid.Column="2">
+            <Grid x:Name="PanelGeneral" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <Label Grid.Row="1" Grid.Column="0" Content="IBAN"/>
-        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Iban, Mode=TwoWay}" />
+                <TextBlock Text="Général" FontWeight="Bold" Margin="0,0,0,8"/>
 
-        <Label Grid.Row="2" Grid.Column="0" Content="BIC"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Bic, Mode=TwoWay}" />
+                <!-- Profil fiscal -->
+                <StackPanel Grid.Row="2" Orientation="Vertical">
+                    <GroupBox Header="Profil fiscal" Margin="0,0,24,12" HorizontalContentAlignment="Stretch">
+                        <StackPanel Margin="8,8,8,8" Orientation="Horizontal">
+                            <RadioButton x:Name="RBTaxMicro" Content="Micro-entreprise (sans TVA)" Margin="0,0,12,0"/>
+                            <RadioButton x:Name="RBTaxTVA"   Content="TVA" />
+                        </StackPanel>
+                    </GroupBox>
 
-        <Label Grid.Row="3" Grid.Column="0" Content="Nom commercial"/>
-        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BusinessName, Mode=TwoWay}" />
-      </Grid>
-    </GroupBox>
-  </Grid>
+                    <!-- Identité société -->
+                    <GroupBox Header="Identité société" Margin="0,0,24,0" HorizontalContentAlignment="Stretch">
+                        <Grid Margin="8" MinWidth="480">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom commercial" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="BoxNomCommercial" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="SIRET" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="BoxSiret" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Adresse 1" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BoxAdresse1" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Adresse 2" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="BoxAdresse2" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Code postal" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="BoxCodePostal" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Ville" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="5" Grid.Column="1" x:Name="BoxVille" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Pays" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="BoxPays" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Email" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="BoxEmail" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Téléphone" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="BoxTelephone" Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="9" Grid.Column="0" Text="Site web" VerticalAlignment="Center"/>
+                            <TextBox   Grid.Row="9" Grid.Column="1" x:Name="BoxSiteWeb" Margin="0,0,0,6"/>
+                        </Grid>
+                    </GroupBox>
+                </StackPanel>
+
+                <!-- Bouton Enregistrer (en bas) -->
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Content="Enregistrer" Width="140" Click="BtnSaveGeneral_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Articles -->
+            <Grid x:Name="PanelArticles" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Paramètres articles" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Catégories -->
+                    <GroupBox Header="Catégories" Grid.Column="0">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6">
+                                <Button Content="Ajouter" Width="100" Margin="0,0,6,0" Click="BtnAddCategory_Click"/>
+                                <Button Content="Enregistrer" Width="120" Margin="0,0,6,0" Click="BtnSaveCategory_Click"/>
+                                <Button Content="Supprimer" Width="100" Click="BtnDeleteCategory_Click"/>
+                            </StackPanel>
+                            <DataGrid x:Name="GridCategories" Margin="6"
+                                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Nom" Binding="{Binding Name}" Width="2*"/>
+                                    <DataGridCheckBoxColumn Header="Actif" Binding="{Binding Actif}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <!-- TVA -->
+                    <GroupBox Header="TVA" Grid.Column="2">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6">
+                                <Button Content="Ajouter" Width="100" Margin="0,0,6,0" Click="BtnAddTva_Click"/>
+                                <Button Content="Enregistrer" Width="120" Margin="0,0,6,0" Click="BtnSaveTva_Click"/>
+                                <Button Content="Supprimer" Width="100" Click="BtnDeleteTva_Click"/>
+                            </StackPanel>
+                            <DataGrid x:Name="GridTva" Margin="6"
+                                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Nom" Binding="{Binding Name}" Width="*"/>
+                                    <DataGridTextColumn Header="Taux (%)" Binding="{Binding Rate, StringFormat=0.##}" Width="*"/>
+                                    <DataGridCheckBoxColumn Header="Défaut" Binding="{Binding IsDefault}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <!-- Cotisations -->
+                    <GroupBox Header="Cotisations (Micro)" Grid.Column="4">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6">
+                                <Button Content="Ajouter" Width="100" Margin="0,0,6,0" Click="BtnAddCoti_Click"/>
+                                <Button Content="Enregistrer" Width="120" Margin="0,0,6,0" Click="BtnSaveCoti_Click"/>
+                                <Button Content="Supprimer" Width="100" Click="BtnDeleteCoti_Click"/>
+                            </StackPanel>
+                            <DataGrid x:Name="GridCoti" Margin="6"
+                                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Nom" Binding="{Binding Name}" Width="*"/>
+                                    <DataGridTextColumn Header="Taux (%)" Binding="{Binding Rate, StringFormat=0.##}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
 </UserControl>
