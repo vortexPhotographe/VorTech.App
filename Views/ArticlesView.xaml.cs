@@ -22,7 +22,6 @@ namespace VorTech.App.Views
         private ObservableCollection<Article> _items = new();
         private ObservableCollection<ArticleVariant> _variants = new();
         private ObservableCollection<PackItem> _pack = new();
-
         private Article? _current;
         private string _taxMode = "Micro"; // lu depuis ConfigService
 
@@ -243,6 +242,17 @@ namespace VorTech.App.Views
             _pack = new ObservableCollection<PackItem>(_articles.GetPackItems(a.Id));
             GridPack.ItemsSource = _pack;
 
+            // Variantes visibles uniquement si Type = Article
+            if (_current.Type == ArticleType.Article)
+            {
+                LoadVariants(_current.Id);
+            }
+            else
+            {
+                _variants = new ObservableCollection<ArticleVariant>();
+                GridVariants.ItemsSource = _variants;
+            }
+
             UpdateComputedStates();
             RefreshPrixConseille();
             LoadArticleImages();
@@ -343,52 +353,97 @@ namespace VorTech.App.Views
         }
 
         // --------------- Variantes ---------------
+        private void LoadVariants(int articleId)
+        {
+            _variants = new ObservableCollection<ArticleVariant>(
+                _articles.GetVariantsByArticleId(articleId)
+            );
+            GridVariants.ItemsSource = _variants;
+        }
         private void BtnAddVariant_Click(object sender, RoutedEventArgs e)
         {
-            if (_current == null || _current.Id == 0) { MessageBox.Show("Enregistrer l’article d’abord."); return; }
+            if (_current == null) { MessageBox.Show("Aucun article sélectionné."); return; }
+            if (_current.Type == ArticleType.Pack)
+            {
+                MessageBox.Show("Un pack ne peut pas avoir de variantes.");
+                return;
+            }
+
             var v = new ArticleVariant
             {
+                Id = 0,
                 ArticleId = _current.Id,
                 Nom = "",
-                PrixAchatHT = 0,
-                PrixVenteHT = 0,
-                StockActuel = 0,
-                SeuilAlerte = 0,
-                CodeBarres = "" // obligatoire à l’édition
+                PrixAchatHT = 0m,
+                PrixVenteHT = 0m,
+                StockActuel = 0m,
+                SeuilAlerte = 0m,
+                CodeBarres = null
             };
-            try
-            {
-                var id = _articles.InsertVariant(v);
-                v.Id = id;
-                _variants.Add(v);
-                UpdateComputedStates();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Variante", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+
+            _variants.Add(v);
+            GridVariants.ItemsSource = null;
+            GridVariants.ItemsSource = _variants;
+            GridVariants.SelectedItem = v;
+
+            GridVariants.ScrollIntoView(v);
+            GridVariants.UpdateLayout();
+            GridVariants.CurrentCell = new DataGridCellInfo(v, GridVariants.Columns[0]);
+            GridVariants.BeginEdit();
         }
 
         private void BtnSaveVariant_Click(object sender, RoutedEventArgs e)
         {
-            if (GridVariants.SelectedItem is not ArticleVariant v) return;
-            try
+            if (_current == null) { MessageBox.Show("Aucun article sélectionné."); return; }
+            if (GridVariants.SelectedItem is not ArticleVariant v)
             {
-                _articles.UpdateVariant(v);
-                UpdateComputedStates();
+                MessageBox.Show("Sélectionnez une variante.");
+                return;
             }
-            catch (Exception ex)
+
+            GridVariants.CommitEdit(DataGridEditingUnit.Cell, true);
+            GridVariants.CommitEdit(DataGridEditingUnit.Row, true);
+
+            // 1) Si le CB est vide -> on le génère de façon déterministe: (Libellé article + Nom variante)
+            if (string.IsNullOrWhiteSpace(v.CodeBarres))
+                v.CodeBarres = GenerateVariantBarcodeFromNames(v.Nom);
+
+            var code = v.CodeBarres!.Trim();
+
+            // 2) Unicité BDD (Articles + Variantes)
+            if (_articles.BarcodeExists(code, excludeArticleId: _current.Id))
             {
-                MessageBox.Show(ex.Message, "Variante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Ce code-barres ({code}) est déjà utilisé.");
+                return;
             }
+
+            // 3) Unicité locale (autres variantes du même article)
+            if (_variants.Where(x => !ReferenceEquals(x, v))
+                         .Any(x => string.Equals(x.CodeBarres?.Trim(), code, StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show("Ce code-barres existe déjà sur une autre variante de cet article.");
+                return;
+            }
+
+            // 4) Persistance
+            if (v.Id == 0) v.Id = _articles.InsertVariant(v);
+            else _articles.UpdateVariant(v);
+
+            LoadVariants(_current.Id);
+            MessageBox.Show("Variante enregistrée.");
         }
 
         private void BtnDeleteVariant_Click(object sender, RoutedEventArgs e)
         {
+            if (_current == null) return;
             if (GridVariants.SelectedItem is not ArticleVariant v) return;
-            _articles.DeleteVariant(v.Id);
+
+            if (MessageBox.Show("Supprimer cette variante ?", "Confirmation",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
+
+            if (v.Id != 0) _articles.DeleteVariant(v.Id);
             _variants.Remove(v);
-            UpdateComputedStates();
         }
 
         // --------------- Pack composition ---------------
@@ -436,64 +491,67 @@ namespace VorTech.App.Views
         // --------------- Prix conseillé ---------------
         private void RefreshPrixConseille()
         {
-            if (_current == null) return;
-            bool isTva = TvaBox.IsEnabled; // piloté par TaxMode
-            decimal pa = ParseDec(PrixAchatBox.Text, 2);
+            // Si rien de chargé : affiche 0
+            if (_current == null) { PrixConseilleText.Text = "0.00"; return; }
 
-            decimal taux = 0m;
+            // Lecture PA
+            decimal pa = ParseDec(PrixAchatBox.Text, 2);
+            if (pa <= 0m) { PrixConseilleText.Text = "0.00"; return; }
+
+            // Mode TVA ou Micro : on se base sur l'état des combos (piloté par TaxMode)
+            bool isTva = TvaBox.IsEnabled;
+
+            decimal pv;
+
             if (isTva)
             {
-                var r = _catalogs.GetRateById(_current.TvaRateId);
-                taux = r;
-                // En TVA, conseillé = 2*PA (taux non appliqué dans la formule HT)
-                var pv = 2m * pa;
-                PrixConseilleBox.Text = pv.ToString("0.00", CultureInfo.InvariantCulture);
+                // CONSEIL HT (TVA gérée ailleurs)
+                pv = 2m * pa;
             }
             else
             {
-                var r = _catalogs.GetRateById(_current.CotisationRateId);
-                taux = r / 100m;
-                if (1 - taux <= 0m) { PrixConseilleBox.Text = "--"; return; }
-                var pv = (2m * pa) / (1m - taux);
-                PrixConseilleBox.Text = Math.Round(pv, 2, MidpointRounding.AwayFromZero).ToString("0.00", CultureInfo.InvariantCulture);
+                // MICRO : PV * (1 - r) = 2 * PA  =>  PV = (2 * PA) / (1 - r)
+                decimal taux = 0m;
+
+                if (_current.CotisationRateId.HasValue)
+                {
+                    // récupère le taux depuis SettingsCatalogService
+                    var r = _catalogs.GetRateById(_current.CotisationRateId.Value); // ex: 0.22 ou 22
+                                                                                    // accepte 22 (pour 22%) ou 0.22  → normaliser en 0.xx
+                    taux = (r > 1m) ? r / 100m : r;
+                }
+
+                var denom = 1m - taux;
+                if (denom <= 0m)
+                {
+                    PrixConseilleText.Text = "--";
+                    return;
+                }
+
+                pv = (2m * pa) / denom;
             }
+
+            pv = Math.Round(pv, 2, MidpointRounding.AwayFromZero);
+            PrixConseilleText.Text = pv.ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         // --------------- BareCode ---------------
         private void BtnGenBarcode_Click(object sender, RoutedEventArgs e)
-        {
-            if (_current == null)
-            {
-                MessageBox.Show("Sélectionnez ou créez un article avant de générer un code-barres.");
-                return;
-            }
+{
+    if (_current == null)
+    {
+        MessageBox.Show("Sélectionnez ou créez un article avant de générer un code-barres.");
+        return;
+    }
 
-            // 1) Génère un EAN-13 valide (prefixe 200 = codes internes)
-            //    Seed: on utilise le Code article si dispo pour stabiliser un peu
-            string seed = string.IsNullOrWhiteSpace(_current.Code) ? string.Empty : _current.Code;
-            string candidate = BarcodeUtil.GenerateEAN13(seed, prefix: "200");
+    // seed déterministe = Libellé + Code
+    string seed = $"{_current.Libelle}|{_current.Code}";
+    string candidate = ComputeDeterministicBarcode("200", seed, _current.Id);
 
-            // 2) Collision check en BDD (Articles + Variantes)
-            //    On tente quelques itérations si collision (très rare)
-            const int maxTries = 5;
-            int tries = 0;
-            while (_articles.BarcodeExists(candidate, excludeArticleId: _current.Id) && tries < maxTries)
-            {
-                candidate = BarcodeUtil.GenerateEAN13(Guid.NewGuid().ToString("N"), prefix: "200");
-                tries++;
-            }
-
-            if (_articles.BarcodeExists(candidate, excludeArticleId: _current.Id))
-            {
-                MessageBox.Show("Impossible de générer un code-barres unique après plusieurs tentatives. Réessayez.");
-                return;
-            }
-
-            // 3) Affecte le champ (l'enregistrement se fera sur 'Enregistrer')
-            CodeBarresBox.Text = candidate;
-            CodeBarresBox.Focus();
-            CodeBarresBox.CaretIndex = CodeBarresBox.Text.Length;
-        }
+    CodeBarresBox.Text = candidate;
+    CodeBarresBox.Focus();
+    CodeBarresBox.CaretIndex = CodeBarresBox.Text.Length;
+}
 
         private void BtnScanBarcode_Click(object sender, RoutedEventArgs e)
         {
@@ -543,7 +601,21 @@ namespace VorTech.App.Views
             CodeBarresBox.CaretIndex = CodeBarresBox.Text.Length;
         }
 
+        private string GenerateUniqueVariantBarcode()
+        {
+            // on part d’un préfixe interne 201 (réserve interne, laisse 200 pour l’article si tu veux)
+            string candidate = BarcodeUtil.GenerateEAN13(_current?.Code ?? Guid.NewGuid().ToString("N"), prefix: "201");
 
+            // collision BDD ? (Articles + Variantes)
+            const int maxTries = 7;
+            int tries = 0;
+            while (_articles.BarcodeExists(candidate, excludeArticleId: _current?.Id) && tries < maxTries)
+            {
+                candidate = BarcodeUtil.GenerateEAN13(Guid.NewGuid().ToString("N"), prefix: "201");
+                tries++;
+            }
+            return candidate;
+        }
 
         // --------------- Helpers ---------------
         private static decimal ParseDec(string? s, int decimals)
@@ -560,6 +632,28 @@ namespace VorTech.App.Views
             UpdateComputedStates();
         }
 
+        private string ComputeDeterministicBarcode(string prefix, string seed, int? excludeArticleId)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                string s = (i == 0) ? seed : $"{seed}#{i}";
+                string code = BarcodeUtil.GenerateEAN13(s, prefix);
+                if (!_articles.BarcodeExists(code, excludeArticleId)) return code;
+            }
+            // Fallback ultra-rare
+            return BarcodeUtil.GenerateEAN13(Guid.NewGuid().ToString("N"), prefix);
+        }
+
+        // Pour une VARIANTE: libellé article + nom de variante
+        private string GenerateVariantBarcodeFromNames(string? variantName)
+        {
+            string art = _current?.Libelle ?? "";
+            string var = variantName?.Trim() ?? "";
+            string seed = $"{art}|{var}";
+            return ComputeDeterministicBarcode("201", seed, _current?.Id);
+        }
+
+
         // --------------- UI events ---------------
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ReloadList(SearchBox.Text);
         private void GridArticles_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -574,5 +668,10 @@ namespace VorTech.App.Views
         private void PrixAchatBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshPrixConseille();
         private void CotisationBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => RefreshPrixConseille();
         private void TvaBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => RefreshPrixConseille();
+
+        private void ActifBox_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

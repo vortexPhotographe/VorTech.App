@@ -132,7 +132,13 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
+        <Style x:Key="GridEditTextBoxStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource ControlBg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlBorder}"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="12">
@@ -233,70 +239,84 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- 1) Code / Libellé -->
-                        <Label Grid.Row="0" Grid.Column="0" Content="Code"/>
+                        <Label Grid.Row="0" Grid.Column="0" Content="Code" VerticalAlignment="Center"/>
                         <TextBox x:Name="SkuBox"     Grid.Row="0" Grid.Column="1" Margin="0,0,16,8"/>
                         <Label Grid.Row="0" Grid.Column="2" Content="Libellé"/>
                         <TextBox x:Name="LibelleBox" Grid.Row="0" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 2) Type / Catégorie -->
-                        <Label Grid.Row="1" Grid.Column="0" Content="Type"/>
-                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,8">
-                            <RadioButton x:Name="TypeArticleRadio" Content="Article" Margin="0,0,16,0" Checked="TypeRadio_Checked"/>
-                            <RadioButton x:Name="TypePackRadio"    Content="Pack"                 Checked="TypeRadio_Checked"/>
+                        <Label Grid.Row="1" Grid.Column="0" Content="Type" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1"
+                                Orientation="Horizontal" Margin="0,0,16,8"
+                                VerticalAlignment="Center" Height="30">
+                            <RadioButton x:Name="TypeArticleRadio" Content="Article"
+                               Margin="0,0,16,0" VerticalAlignment="Center"
+                               Checked="TypeRadio_Checked"/>
+                            <RadioButton x:Name="TypePackRadio"    Content="Pack"
+                               VerticalAlignment="Center"
+                               Checked="TypeRadio_Checked"/>
                         </StackPanel>
 
-                        <Label Grid.Row="1" Grid.Column="2" Content="Catégorie"/>
+                        <Label Grid.Row="1" Grid.Column="2" Content="Catégorie" VerticalAlignment="Center"/>
                         <ComboBox x:Name="CategorieBox" Grid.Row="1" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 3) Cotisation / TVA -->
-                        <Label Grid.Row="2" Grid.Column="0" Content="Cotisation"/>
+                        <Label Grid.Row="2" Grid.Column="0" Content="Cotisation" VerticalAlignment="Center"/>
                         <ComboBox x:Name="CotisationBox" Grid.Row="2" Grid.Column="1" Margin="0,0,16,8"/>
                         <Label Grid.Row="2" Grid.Column="2" Content="TVA"/>
                         <ComboBox x:Name="TvaBox"        Grid.Row="2" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 4) Prix d'achat / Poids -->
-                        <Label Grid.Row="3" Grid.Column="0" Content="Prix d'achat HT"/>
+                        <Label Grid.Row="3" Grid.Column="0" Content="Prix d'achat HT" VerticalAlignment="Center"/>
                         <TextBox x:Name="PrixAchatBox" Grid.Row="3" Grid.Column="1" Margin="0,0,16,8" TextChanged="PrixAchatBox_TextChanged"/>
                         <Label Grid.Row="3" Grid.Column="2" Content="Poids (g)"/>
                         <TextBox x:Name="PoidsBox"    Grid.Row="3" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 5) Prix conseillé / Prix de vente -->
-                        <Label Grid.Row="4" Grid.Column="0" Content="Prix conseillé HT"/>
-                        <TextBox x:Name="PrixConseilleBox" Grid.Row="4" Grid.Column="1" Margin="0,0,16,8" IsReadOnly="True"/>
-                        <Label Grid.Row="4" Grid.Column="2" Content="Prix de vente HT"/>
+                        <Label Grid.Row="4" Grid.Column="0" Content="Prix conseillé HT" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="PrixConseilleText"
+                           Grid.Row="4" Grid.Column="1"
+                           Margin="0,10,16,0"
+                           VerticalAlignment="Top" MinHeight="30"
+                           Text="0.00" Grid.RowSpan="2"/>
+                        <Label Grid.Row="4" Grid.Column="2" Content="Prix de vente HT" VerticalAlignment="Center"/>
                         <TextBox x:Name="PrixVenteBox"     Grid.Row="4" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 6) Stock / Seuil -->
-                        <Label Grid.Row="5" Grid.Column="0" Content="Stock actuel"/>
+                        <Label Grid.Row="5" Grid.Column="0" Content="Stock actuel" VerticalAlignment="Center"/>
                         <TextBox x:Name="StockBox" Grid.Row="5" Grid.Column="1" Margin="0,0,16,8"/>
-                        <Label Grid.Row="5" Grid.Column="2" Content="Seuil alerte"/>
+                        <Label Grid.Row="5" Grid.Column="2" Content="Seuil alerte" VerticalAlignment="Center"/>
                         <TextBox x:Name="SeuilBox"  Grid.Row="5" Grid.Column="3" Margin="0,0,0,8"/>
 
                         <!-- 7) Actif / Dernière MAJ -->
-                        <Label Grid.Row="6" Grid.Column="0" Content="Actif"/>
-                        <CheckBox x:Name="ActifBox" Grid.Row="6" Grid.Column="1" Margin="0,0,16,8"/>
-                        <Label Grid.Row="6" Grid.Column="2" Content="Dernière mise à jour"/>
-                        <TextBlock x:Name="DerniereMajText" Grid.Row="6" Grid.Column="3" Margin="0,0,0,8"/>
-
+                        <Label Grid.Row="6" Grid.Column="0" Content="Actif" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="ActifBox"
+                          Grid.Row="6" Grid.Column="1"
+                          Margin="0,0,16,8"
+                          VerticalAlignment="Center" Height="30"/>
+                        <Label Grid.Row="6" Grid.Column="0" Content="Actif" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="DerniereMajText"
+                           Grid.Row="6" Grid.Column="3"
+                           Margin="0,0,0,8"
+                           VerticalAlignment="Center" MinHeight="30"/>
+                        <Label Grid.Row="6" Grid.Column="2" Content="Dernière mise à jour" VerticalAlignment="Center"/>
                         <!-- 8) Code-barres : champ + boutons sur une seule ligne -->
-                        <Label Grid.Row="7" Grid.Column="0" Content="Code-barres"/>
-                        <Grid Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3">
+                        <Label Grid.Row="7" Grid.Column="0" Content="Code-barres" VerticalAlignment="Center"/>
+
+                        <Grid Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <!-- le TextBox prend tout l'espace dispo -->
                                 <ColumnDefinition Width="Auto"/>
-                                <!-- bouton Générer -->
                                 <ColumnDefinition Width="Auto"/>
-                                <!-- bouton Scanner -->
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="CodeBarresBox" Grid.Column="0" Margin="0,0,8,0"/>
                             <Button x:Name="BtnGenBarcode"
                               Grid.Column="1" Content="Générer"
-                              Margin="0,0,8,0" Width="100"
+                              Margin="0,0,8,0" Width="100" Height="30"
                               Click="BtnGenBarcode_Click"/>
                             <Button x:Name="BtnScanBarcode"
                               Grid.Column="2" Content="Scanner"
-                              Width="100"
+                              Width="100" Height="30"
                               Click="BtnScanBarcode_Click"/>
                         </Grid>
                     </Grid>
@@ -385,14 +405,18 @@
                         <Button Content="Enregistrer la variante" Width="180" Margin="0,0,8,0" Click="BtnSaveVariant_Click"/>
                         <Button Content="Supprimer la variante"    Width="160" Click="BtnDeleteVariant_Click"/>
                     </StackPanel>
-                    <DataGrid x:Name="GridVariants" Margin="6" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
+                    <DataGrid x:Name="GridVariants" Margin="6"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"                         Width="2*"/>
-                            <DataGridTextColumn Header="Prix achat"  Binding="{Binding PrixAchatHT, StringFormat=0.00}" Width="*"/>
-                            <DataGridTextColumn Header="Prix vente"  Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*"/>
-                            <DataGridTextColumn Header="Stock"       Binding="{Binding StockActuel, StringFormat=0}"   Width="*"/>
-                            <DataGridTextColumn Header="Seuil"       Binding="{Binding SeuilAlerte, StringFormat=0}"   Width="*"/>
-                            <DataGridTextColumn Header="Code-barres" Binding="{Binding CodeBarres}"                    Width="2*"/>
+                            <DataGridTextColumn Header="Nom"         EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding Nom}"                         Width="2*"/>
+                            <DataGridTextColumn Header="Prix achat"  EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding PrixAchatHT, StringFormat=0.00}" Width="*"/>
+                            <DataGridTextColumn Header="Prix vente"  EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding PrixVenteHT, StringFormat=0.00}" Width="*"/>
+                            <DataGridTextColumn Header="Stock"       EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding StockActuel, StringFormat=0}"   Width="*"/>
+                            <DataGridTextColumn Header="Seuil"       EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding SeuilAlerte, StringFormat=0}"   Width="*"/>
+                            <DataGridTextColumn Header="Code-barres" EditingElementStyle="{StaticResource GridEditTextBoxStyle}" Binding="{Binding CodeBarres}"                    Width="2*"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>

@@ -19,6 +19,7 @@ namespace VorTech.App.Services
             var list = new List<Article>();
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
+
             if (string.IsNullOrWhiteSpace(search))
             {
                 cmd.CommandText = @"SELECT * FROM Articles ORDER BY Libelle COLLATE NOCASE";
@@ -97,38 +98,6 @@ WHERE Id=@Id;";
             using var rd = cmd.ExecuteReader();
             while (rd.Read()) list.Add(ReadVariant(rd));
             return list;
-        }
-
-        public int InsertVariant(ArticleVariant v)
-        {
-            RequireVariantBarcode(v);
-            using var cn = Db.Open();
-            using var cmd = cn.CreateCommand();
-            cmd.CommandText = @"
-INSERT INTO ArticleVariants(ArticleId, Nom, PrixVenteHT, CodeBarres, PrixAchatHT, StockActuel, SeuilAlerte)
-VALUES(@ArticleId,@Nom,@PrixVenteHT,@CodeBarres,@PrixAchatHT,@StockActuel,@SeuilAlerte);
-SELECT last_insert_rowid();";
-            BindVariant(cmd, v);
-            var id = Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
-            // packs éventuellement impactés
-            RecomputePacksAffectedByVariant(id);
-            return id;
-        }
-
-        public void UpdateVariant(ArticleVariant v)
-        {
-            RequireVariantBarcode(v);
-            using var cn = Db.Open();
-            using var cmd = cn.CreateCommand();
-            cmd.CommandText = @"
-UPDATE ArticleVariants SET
-    Nom=@Nom, PrixVenteHT=@PrixVenteHT, CodeBarres=@CodeBarres,
-    PrixAchatHT=@PrixAchatHT, StockActuel=@StockActuel, SeuilAlerte=@SeuilAlerte
-WHERE Id=@Id;";
-            BindVariant(cmd, v);
-            Db.AddParam(cmd, "@Id", v.Id);
-            cmd.ExecuteNonQuery();
-            RecomputePacksAffectedByVariant(v.Id);
         }
 
         public void DeleteVariant(int variantId)
@@ -495,6 +464,72 @@ LIMIT 1;";
             return rd.Read();
         }
 
+        // ================= VARIANTES =================
+
+        public List<ArticleVariant> GetVariantsByArticleId(int articleId)
+        {
+            var list = new List<ArticleVariant>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+SELECT Id, ArticleId, Nom, PrixAchatHT, PrixVenteHT, StockActuel, SeuilAlerte, CodeBarres
+FROM ArticleVariants
+WHERE ArticleId = @A
+ORDER BY Id";
+            Db.AddParam(cmd, "@A", articleId);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new ArticleVariant
+                {
+                    Id = Convert.ToInt32(rd["Id"]),
+                    ArticleId = Convert.ToInt32(rd["ArticleId"]),
+                    Nom = rd["Nom"]?.ToString() ?? "",
+                    PrixAchatHT = Convert.ToDecimal(rd["PrixAchatHT"]),
+                    PrixVenteHT = Convert.ToDecimal(rd["PrixVenteHT"]),
+                    StockActuel = Convert.ToDecimal(rd["StockActuel"]),
+                    SeuilAlerte = Convert.ToDecimal(rd["SeuilAlerte"]),
+                    CodeBarres = rd["CodeBarres"]?.ToString()
+                });
+            }
+            return list;
+        }
+
+        public int InsertVariant(ArticleVariant v)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO ArticleVariants(ArticleId, Nom, PrixAchatHT, PrixVenteHT, StockActuel, SeuilAlerte, CodeBarres)
+VALUES(@ArticleId,@Nom,@PA,@PV,@Stock,@Seuil,@CB);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@ArticleId", v.ArticleId);
+            Db.AddParam(cmd, "@Nom", v.Nom ?? "");
+            Db.AddParam(cmd, "@PA", v.PrixAchatHT);
+            Db.AddParam(cmd, "@PV", v.PrixVenteHT);
+            Db.AddParam(cmd, "@Stock", v.StockActuel);
+            Db.AddParam(cmd, "@Seuil", v.SeuilAlerte);
+            Db.AddParam(cmd, "@CB", (object?)v.CodeBarres ?? DBNull.Value);
+            return Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        public void UpdateVariant(ArticleVariant v)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE ArticleVariants
+SET Nom=@Nom, PrixAchatHT=@PA, PrixVenteHT=@PV, StockActuel=@Stock, SeuilAlerte=@Seuil, CodeBarres=@CB
+WHERE Id=@Id;";
+            Db.AddParam(cmd, "@Nom", v.Nom ?? "");
+            Db.AddParam(cmd, "@PA", v.PrixAchatHT);
+            Db.AddParam(cmd, "@PV", v.PrixVenteHT);
+            Db.AddParam(cmd, "@Stock", v.StockActuel);
+            Db.AddParam(cmd, "@Seuil", v.SeuilAlerte);
+            Db.AddParam(cmd, "@CB", (object?)v.CodeBarres ?? DBNull.Value);
+            Db.AddParam(cmd, "@Id", v.Id);
+            cmd.ExecuteNonQuery();
+        }
 
         // -----------------------------
         //  PRIVATE HELPERS
