@@ -8,9 +8,11 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using VorTech.App.Models;
 using VorTech.App.Services;
+
 
 
 namespace VorTech.App.Views
@@ -19,6 +21,8 @@ namespace VorTech.App.Views
     {
         private readonly ArticleService _articles = new();
         private readonly SettingsCatalogService _catalogs = new();
+        private GroupBox? _groupDeclinaisons;
+        private GroupBox? _groupPack;
 
         private ObservableCollection<Article> _items = new();
         private ObservableCollection<ArticleVariant> _variants = new();
@@ -29,10 +33,77 @@ namespace VorTech.App.Views
         public ArticlesView()
         {
             InitializeComponent();
+            Loaded += (_, __) =>
+            {
+                // On récupère 1 fois les GroupBox parents à partir des DataGrid existants
+                _groupDeclinaisons = FindAncestor<GroupBox>(GridVariants);
+                _groupPack = FindAncestor<GroupBox>(GridPack);
+
+                // On synchronise l’UI avec le type courant si un article est déjà chargé
+                if (_current != null) UpdateUiForType(_current.Type);
+            };
+
+            // 1) Remplir les combos UNE FOIS
+            LoadCatalogCombos();
+
+            // 2) Charger la config et appliquer le mode fiscal (Micro/TVA)
             LoadConfigAndBinds();
+
+            // 3) Charger la liste d'articles (gauche)
             ReloadList();
+
+            // 4) Init une fiche par défaut (si c’est ton flux)
             NewArticle();
         }
+
+        private static void TraceBox(string title, string body)
+        {
+            VorTech.App.Services.DebugMsg.Show(title, body);
+        }
+
+        //DEBUG
+        // === DEBUG COMBOS ===
+        private static int ComboCount(ComboBox cb)
+        {
+            if (cb?.Items == null) return -1;
+            return cb.Items.Count;
+        }
+
+        private static string ComboPreview(ComboBox cb, int max = 3)
+        {
+            if (cb?.Items == null || cb.Items.Count == 0) return "(vide)";
+            var take = Math.Min(cb.Items.Count, max);
+            var names = new List<string>();
+            for (int i = 0; i < take; i++)
+            {
+                var it = cb.Items[i];
+                var pi = it?.GetType().GetProperty("Name");
+                var n = (string?)pi?.GetValue(it) ?? it?.ToString() ?? "?";
+                names.Add(n);
+            }
+            return string.Join(", ", names);
+        }
+
+        private void DumpCombos(string tag)
+        {
+            string body =
+                $"Cats count={ComboCount(CategorieBox)} preview=[{ComboPreview(CategorieBox)}]\n" +
+                $"TVA  count={ComboCount(TvaBox)}       preview=[{ComboPreview(TvaBox)}]\n" +
+                $"Cots count={ComboCount(CotisationBox)} preview=[{ComboPreview(CotisationBox)}]";
+        }
+
+        private void DumpSelecteds(string tag)
+        {
+            object? toId(object? v) =>
+                v == null ? null : Convert.ToInt32(v, System.Globalization.CultureInfo.InvariantCulture);
+
+            string body =
+                $"CategorieId={toId(CategorieBox?.SelectedValue)} ; " +
+                $"TvaRateId={toId(TvaBox?.SelectedValue)} ; " +
+                $"CotisationRateId={toId(CotisationBox?.SelectedValue)}";
+            TraceBox($"[{tag}] SelectedValue", body);
+        }
+        //FIN DEBUG
 
         // -------------- Images --------------
         private void LoadArticleImages()
@@ -192,16 +263,9 @@ namespace VorTech.App.Views
         // --------------- Init ---------------
         private void LoadConfigAndBinds()
         {
-            var cfg = ConfigService.Get();
-            _taxMode = string.IsNullOrWhiteSpace(cfg.TaxMode) ? "Micro" : cfg.TaxMode;
-
-            bool isMicro = string.Equals(_taxMode, "Micro", StringComparison.OrdinalIgnoreCase);
-            TvaBox.IsEnabled = !isMicro;
-            CotisationBox.IsEnabled = isMicro;
-
-            CotisationBox.ItemsSource = _catalogs.GetCotisationTypes();
-            TvaBox.ItemsSource = _catalogs.GetTvaRates(); // peut être vide si non implémenté
-            CategorieBox.ItemsSource = _catalogs.GetCategories();
+            var cfg = ConfigService.Load();
+            _taxMode = string.IsNullOrWhiteSpace(cfg.TaxMode) ? (cfg.IsMicro ? "Micro" : "TVA") : cfg.TaxMode;
+            ApplyTaxModeToCombos();
         }
 
         private void ReloadList(string? search = null)
@@ -219,15 +283,16 @@ namespace VorTech.App.Views
         private void BindToForm()
         {
             if (_current == null) return;
-            var t = _current.Type;
-            TypeArticleRadio.IsChecked = (t == ArticleType.Article);
-            TypePackRadio.IsChecked = (t == ArticleType.Pack);
-            var a = _current!;
-            SkuBox.Text = _current.Code;
-            LibelleBox.Text = _current.Libelle;
-            CategorieBox.SelectedValue = a.CategorieId;
-            TvaBox.SelectedValue = a.TvaRateId;
-            CotisationBox.SelectedValue = a.CotisationRateId;
+
+            var a = _current;
+
+            // Radios Type
+            TypeArticleRadio.IsChecked = (a.Type == ArticleType.Article);
+            TypePackRadio.IsChecked = (a.Type == ArticleType.Pack);
+
+            // Champs texte / numériques
+            SkuBox.Text = a.Code;
+            LibelleBox.Text = a.Libelle;
             PrixAchatBox.Text = a.PrixAchatHT.ToString("0.00", CultureInfo.InvariantCulture);
             PrixVenteBox.Text = a.PrixVenteHT.ToString("0.00", CultureInfo.InvariantCulture);
             PoidsBox.Text = a.PoidsG.ToString("0", CultureInfo.InvariantCulture);
@@ -237,24 +302,34 @@ namespace VorTech.App.Views
             DerniereMajText.Text = a.DerniereMaj.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             CodeBarresBox.Text = a.CodeBarres ?? string.Empty;
 
-            // Variantes & Pack
-            _variants = new ObservableCollection<ArticleVariant>(_articles.GetVariants(a.Id));
-            GridVariants.ItemsSource = _variants;
-            _pack = new ObservableCollection<PackItem>(_articles.GetPackItems(a.Id));
-            GridPack.ItemsSource = _pack;
+            // Sélections des combos (IMPORTANT : LoadCatalogCombos() doit avoir été appelé avant)
+            SetComboById(CategorieBox, a.CategorieId);
+            SetComboById(TvaBox, a.TvaRateId);
+            SetComboById(CotisationBox, a.CotisationRateId);
 
-            // Variantes visibles uniquement si Type = Article
-            if (_current.Type == ArticleType.Article)
+            // Déclinaisons & Pack (selon type)
+            if (a.Type == ArticleType.Article)
             {
-                LoadVariants(_current.Id);
+                _variants = new ObservableCollection<ArticleVariant>(_articles.GetVariants(a.Id));
+                GridVariants.ItemsSource = _variants;
+
+                GridPack.ItemsSource = null; // pas de pack
             }
-            else
+            else // PACK
             {
                 _variants = new ObservableCollection<ArticleVariant>();
                 GridVariants.ItemsSource = _variants;
+
+                ReloadPackGrid(); // charge GridPack avec les VM (méthode existante)
             }
 
-            UpdateComputedStates();
+            // Met l’UI dans l’état Article/Pack (readonly/visible)
+            UpdateUiForType(a.Type);
+
+            // Met l’UI dans l’état Micro/TVA (enable combos)
+            ApplyTaxModeToCombos();
+
+            // Calcul du prix conseillé & images
             RefreshPrixConseille();
             LoadArticleImages();
         }
@@ -295,12 +370,62 @@ namespace VorTech.App.Views
 
         private void BtnReload_Click(object sender, RoutedEventArgs e)
         {
+            // On recharge les catalogues (au cas où tu as modifié dans Réglages)
+            LoadCatalogCombos();
+            DumpCombos("Reload:afterLoadCatalogs");
+            LoadConfigAndBinds();
+
             ReloadList(SearchBox.Text);
+
             if (_current != null)
             {
                 var again = _articles.GetAll().FirstOrDefault(x => x.Id == _current.Id);
                 _current = again ?? _current;
-                BindToForm();
+                BindToForm(); // pose les SelectedValue et rafraîchit la vue
+            }
+        }
+
+        private void UpdateUiForType(ArticleType t)
+        {
+            bool isPack = (t == ArticleType.Pack);
+
+            // 4 champs "calculés" quand on est en pack : on les grise / readonly
+            PrixAchatBox.IsReadOnly = isPack;
+            //PrixVenteBox.IsReadOnly = isPack;
+            StockBox.IsReadOnly = isPack;
+            SeuilBox.IsReadOnly = isPack;
+
+            // En plus du IsReadOnly, on désactive pour empêcher le focus et avoir un style grisé.
+            PrixAchatBox.IsEnabled = !isPack;
+            //PrixVenteBox.IsEnabled = !isPack;
+            StockBox.IsEnabled = !isPack;
+            SeuilBox.IsEnabled = !isPack;
+
+            // Panneaux : Déclinaisons visibles uniquement pour Article, Pack visible uniquement pour Pack
+            // Remplace ces noms par ceux de tes GroupBox si besoin.
+            if (_groupDeclinaisons != null)
+                _groupDeclinaisons.Visibility = isPack ? Visibility.Collapsed : Visibility.Visible;
+
+            if (_groupPack != null)
+                _groupPack.Visibility = isPack ? Visibility.Visible : Visibility.Collapsed;
+
+            // Rafraîchissements ciblés
+            if (_current != null && _current.Id > 0)
+            {
+                if (isPack)
+                {
+                    ReloadPackGrid();      // déjà existant
+                }
+                else
+                {
+                    LoadVariants(_current.Id); // déjà existant
+                }
+            }
+            else
+            {
+                // pas d'article chargé : vide les grids pour éviter du bruit
+                GridPack.ItemsSource = null;
+                GridVariants.ItemsSource = null;
             }
         }
 
@@ -483,6 +608,41 @@ namespace VorTech.App.Views
             UpdateComputedStates();                            // rafraîchit les champs calculés à l’écran
         }
 
+        // ComboBox catalogue
+        private void LoadCatalogCombos()
+        {
+            // Catégories
+            var cats = _catalogs.GetCategories();           // List<Category> { Id, Name, Actif }
+            CategorieBox.ItemsSource = cats;
+            CategorieBox.DisplayMemberPath = "Name";
+            CategorieBox.SelectedValuePath = "Id";
+
+            // TVA
+            var tvas = _catalogs.GetTvaRates();             // List<TvaRate> { Id, Name, Rate }
+            TvaBox.ItemsSource = tvas;
+            TvaBox.DisplayMemberPath = "Name";
+            TvaBox.SelectedValuePath = "Id";
+
+            // Cotisations (micro)
+            var cots = _catalogs.GetCotisationRates();      // List<CotisationRate> { Id, Name, Rate }
+            CotisationBox.ItemsSource = cots;
+            CotisationBox.DisplayMemberPath = "Name";
+            CotisationBox.SelectedValuePath = "Id";
+
+            DumpCombos("LoadCatalogCombos"); //DEBUG
+        }
+
+        private void ApplyTaxModeToCombos()
+        {
+            // Catégorie toujours active
+            CategorieBox.IsEnabled = true;
+
+            // Micro = Cotisation active, TVA inactive
+            // TVA   = TVA active, Cotisation inactive
+            bool isMicro = string.Equals(_taxMode, "Micro", StringComparison.OrdinalIgnoreCase);
+            CotisationBox.IsEnabled = isMicro;
+            TvaBox.IsEnabled = !isMicro;
+        }
         private class PackRowVM
         {
             public int Id { get; set; }              // PackItems.Id
@@ -669,6 +829,59 @@ namespace VorTech.App.Views
         // --------------- Helpers ---------------
         // Génère un EAN-13 (préfixe 201) à partir de "LibelléArticle|NomVariante",
         // et, en cas de collision (BDD ou dans la liste en cours), essaie seed#1, seed#2...
+
+        // Helper: sélectionne l’item dont la propriété Id == id (sinon désélectionne)
+        private static void SetComboById(System.Windows.Controls.ComboBox box, int? id)
+        {
+            if (box == null) return;
+
+            if (id == null)
+            {
+                box.SelectedIndex = -1;
+                return;
+            }
+
+            // On lit la source et on cherche un objet dont la propriété publique "Id" == id
+            var items = box.ItemsSource as System.Collections.IEnumerable;
+            if (items == null)
+            {
+                box.SelectedIndex = -1;
+                return;
+            }
+
+            object? match = null;
+            foreach (var o in items)
+            {
+                var pi = o?.GetType().GetProperty("Id");
+                if (pi == null) continue;
+                var val = pi.GetValue(o);
+                if (val is int i && i == id.Value)
+                {
+                    match = o;
+                    break;
+                }
+                // tolérance: si Id est un long, decimal, etc.
+                if (val != null && int.TryParse(val.ToString(), out var ii) && ii == id.Value)
+                {
+                    match = o;
+                    break;
+                }
+            }
+
+            box.SelectedItem = match ?? (object?)null;
+        }
+
+        private static T? FindAncestor<T>(DependencyObject? start) where T : DependencyObject
+        {
+            var current = start;
+            while (current != null)
+            {
+                if (current is T typed) return typed;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
         private string ComputeUniqueVariantBarcode(string? variantName, ArticleVariant? exclude = null)
         {
             string art = _current?.Libelle ?? "";
@@ -704,6 +917,7 @@ namespace VorTech.App.Views
             if (_current == null) return;
             _current.Type = (TypePackRadio.IsChecked == true) ? ArticleType.Pack : ArticleType.Article;
             UpdateComputedStates();
+            UpdateUiForType(_current.Type);
         }
 
         private string ComputeDeterministicBarcode(string prefix, string seed, int? excludeArticleId)
@@ -727,6 +941,19 @@ namespace VorTech.App.Views
             return ComputeDeterministicBarcode("201", seed, _current?.Id);
         }
 
+        private void TypeArticleRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            _current.Type = ArticleType.Article;
+            UpdateUiForType(ArticleType.Article);
+        }
+
+        private void TypePackRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            _current.Type = ArticleType.Pack;
+            UpdateUiForType(ArticleType.Pack);
+        }
 
         // --------------- UI events ---------------
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ReloadList(SearchBox.Text);
