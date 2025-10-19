@@ -1,0 +1,102 @@
+{
+  "When": "2025-10-18 21:47:21",
+  "ProjectDir": "C:\\dev\\VorTech.App",
+  "DbFound": false,
+  "DbPath": "(introuvable)",
+  "Tree": {
+    "Views": [
+      "Views/ArticlesView.xaml",
+      "Views/ClientsView.xaml",
+      "Views/DashboardView.xaml",
+      "Views/DevisView.xaml",
+      "Views/InvoicesView.xaml",
+      "Views/NoteEditorWindow.xaml",
+      "Views/SelectPackItemsWindow.xaml",
+      "Views/SettingsView.xaml"
+    ],
+    "ViewCode": [
+      "Views/ArticlesView.xaml.cs",
+      "Views/ClientsView.xaml.cs",
+      "Views/DashboardView.xaml.cs",
+      "Views/DevisView.xaml.cs",
+      "Views/InvoicesView.xaml.cs",
+      "Views/NoteEditorWindow.xaml.cs",
+      "Views/SelectPackItemsWindow.xaml.cs",
+      "Views/SettingsView.xaml.cs"
+    ],
+    "Dialogs": [
+      "Dialogs/ReassortDialog.xaml"
+    ],
+    "Models": [
+      "Models/AppConfig.cs",
+      "Models/Article.cs",
+      "Models/ArticleImage.cs",
+      "Models/ArticleReassort.cs",
+      "Models/ArticleType.cs",
+      "Models/ArticleVariant.cs",
+      "Models/Categorie.cs",
+      "Models/Client.cs",
+      "Models/CompanyProfile.cs",
+      "Models/CotisationType.cs",
+      "Models/Devis.cs",
+      "Models/PackItem.cs",
+      "Models/TvaRate.cs"
+    ],
+    "Services": [
+      "Services/ArticleService.cs",
+      "Services/BarcodeUtil.cs",
+      "Services/ClientService.cs",
+      "Services/ConfigService.cs",
+      "Services/DebugMsg.cs",
+      "Services/DevisService.cs",
+      "Services/IArticleService.cs",
+      "Services/Logger.cs",
+      "Services/NumberingService.cs",
+      "Services/SettingsCatalogService.cs"
+    ],
+    "Data": [
+      "data/Db.cs",
+      "Data/Db.cs"
+    ],
+    "Themes": [
+      "Themes/Dark.xaml"
+    ],
+    "Assets": [
+      "Assets/Brand/logo.png"
+    ],
+    "RootCs": [
+      "App.xaml.cs",
+      "InvoicePdf.cs",
+      "MainWindow.xaml.cs",
+      "Paths.cs"
+    ]
+  },
+  "XamlDataContexts": [
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {}
+  ],
+  "PdfUsage": [
+    {},
+    {}
+  ],
+  "Db": null
+}

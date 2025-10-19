@@ -1,5 +1,0 @@
-﻿C:\dev\VorTech.App\Views\ArticlesView.xaml:1: <UserControl x:Class="VorTech.App.Views.ArticlesView"
-C:\dev\VorTech.App\Views\ArticlesView.xaml.cs:14:     public partial class ArticlesView : UserControl
-C:\dev\VorTech.App\Views\ArticlesView.xaml.cs:25:         public ArticlesView()
-C:\dev\VorTech.App\Views\ArticlesView.xaml.cs:28:             MessageBox.Show("ArticlesView CTOR", "TRACE", MessageBoxButton.OK, MessageBoxImage.Information);
-C:\dev\VorTech.App\Views\ArticlesView.xaml.cs:39:             MessageBox.Show("ArticlesView LOADED", "TRACE", MessageBoxButton.OK, MessageBoxImage.Information);

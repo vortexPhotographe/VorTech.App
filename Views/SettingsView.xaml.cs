@@ -18,6 +18,7 @@ namespace VorTech.App.Views
         private ObservableCollection<TvaVM> _tvas = new();
         private ObservableCollection<CotiVM> _cotis = new();
         private CompanyProfile _company = new CompanyProfile();
+        private readonly INumberingService _num = new NumberingService();
 
         public SettingsView()
         {
@@ -32,6 +33,7 @@ namespace VorTech.App.Views
         {
             PanelGeneral.Visibility = (panel == PanelGeneral) ? Visibility.Visible : Visibility.Collapsed;
             PanelArticles.Visibility = (panel == PanelArticles) ? Visibility.Visible : Visibility.Collapsed;
+            PanelDocs.Visibility = (panel == PanelDocs) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void BtnShowGeneral_Click(object sender, RoutedEventArgs e) => ShowPanel(PanelGeneral);
@@ -212,6 +214,60 @@ namespace VorTech.App.Views
             _company.Email = BoxEmail.Text?.Trim() ?? "";
             _company.Telephone = BoxTelephone.Text?.Trim() ?? "";
             _company.SiteWeb = BoxSiteWeb.Text?.Trim() ?? "";
+        }
+
+        // --- Devis et Facture
+        private void BtnSaveFormats_Click(object sender, RoutedEventArgs e)
+        {
+            var scopeDev = ((ComboBoxItem)CmbScopeDevis.SelectedItem)?.Content?.ToString() ?? "MONTHLY";
+            var scopeFac = ((ComboBoxItem)CmbScopeFact.SelectedItem)?.Content?.ToString() ?? "MONTHLY";
+            _num.SetFormat("DEVI", TxtPatternDevis.Text?.Trim() ?? "DEVI-{yyyy}-{MM}-{####}", scopeDev);
+            _num.SetFormat("FACT", TxtPatternFact.Text?.Trim() ?? "FACT-{yyyy}-{MM}-{####}", scopeFac);
+            MessageBox.Show("Formats enregistrés.");
+        }
+
+        private void BtnSaveNextDevis_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(TxtNextDevis.Text, out var n) && n >= 1)
+            {
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                _num.SetNextSeq("DEVI", today, n);
+                MessageBox.Show("Compteur devis mis à jour.");
+            }
+        }
+
+        private void BtnSaveNextFact_Click(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(TxtNextFact.Text, out var n) && n >= 1)
+            {
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                _num.SetNextSeq("FACT", today, n);
+                MessageBox.Show("Compteur factures mis à jour.");
+            }
+        }
+        private void BtnShowDocs_Click(object sender, RoutedEventArgs e)
+        {
+            LoadDocs();
+            ShowPanel(PanelDocs);
+        }
+        private void LoadDocs()
+        {
+            // lire formats
+            var (pDev, sDev) = _num.GetFormat("DEVI");
+            var (pFac, sFac) = _num.GetFormat("FACT");
+
+            TxtPatternDevis.Text = pDev;
+            TxtPatternFact.Text = pFac;
+
+            CmbScopeDevis.SelectedItem = CmbScopeDevis.Items.Cast<ComboBoxItem>()
+                .FirstOrDefault(i => string.Equals((string)i.Content, sDev, StringComparison.OrdinalIgnoreCase));
+            CmbScopeFact.SelectedItem = CmbScopeFact.Items.Cast<ComboBoxItem>()
+                .FirstOrDefault(i => string.Equals((string)i.Content, sFac, StringComparison.OrdinalIgnoreCase));
+
+            // lire compteurs de la période courante (scope appliqué dans NumberingService)
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            TxtNextDevis.Text = _num.GetNextSeq("DEVI", today).ToString(CultureInfo.InvariantCulture);
+            TxtNextFact.Text = _num.GetNextSeq("FACT", today).ToString(CultureInfo.InvariantCulture);
         }
 
         // --- VM internes

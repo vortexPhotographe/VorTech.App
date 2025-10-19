@@ -19,8 +19,7 @@
             <TextBlock Text="Réglages" FontWeight="Bold" Margin="0,0,0,8"/>
             <Button Content="Général"   Margin="0,0,0,6" Click="BtnShowGeneral_Click"/>
             <Button Content="Articles"   Margin="0,0,0,6" Click="BtnShowArticles_Click"/>
-            <Button Content="Banque (plus tard)" IsEnabled="False" Margin="0,0,0,6"/>
-            <Button Content="Devis &amp; Factures (plus tard)" IsEnabled="False" Margin="0,0,0,6"/>
+            <Button x:Name="BtnShowDocs" Content="Devis &amp; Factures" Click="BtnShowDocs_Click"/>
         </StackPanel>
 
         <!-- PANELS -->
@@ -177,6 +176,58 @@
                     </GroupBox>
                 </Grid>
             </Grid>
+        </Grid>
+        <!-- Panel DEVIS FACTURE -->
+        <Grid x:Name="PanelDocs" Visibility="Collapsed" Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Formats -->
+            <GroupBox Header="Numérotation — formats (lecture/écriture)">
+                <StackPanel Margin="8">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="Devis :" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtPatternDevis" Width="220"/>
+                        <TextBlock Text="Scope :" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbScopeDevis" Width="140">
+                            <ComboBoxItem Content="MONTHLY"/>
+                            <ComboBoxItem Content="YEARLY"/>
+                            <ComboBoxItem Content="GLOBAL"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Factures :" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtPatternFact" Width="220"/>
+                        <TextBlock Text="Scope :" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CmbScopeFact" Width="140">
+                            <ComboBoxItem Content="MONTHLY"/>
+                            <ComboBoxItem Content="YEARLY"/>
+                            <ComboBoxItem Content="GLOBAL"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Enregistrer formats" Click="BtnSaveFormats_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Compteurs -->
+            <GroupBox Header="Compteur courant (période actuelle)" Grid.Row="1" Margin="0,8,0,0">
+                <StackPanel Margin="8" Orientation="Horizontal">
+                    <TextBlock Text="Devis : prochain n° =" VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtNextDevis" Width="80" Margin="8,0,0,0"/>
+                    <Button Content="Enregistrer" Margin="8,0,0,0" Click="BtnSaveNextDevis_Click"/>
+
+                    <TextBlock Text="   " Width="24"/>
+                    <TextBlock Text="Factures : prochain n° =" VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtNextFact" Width="80" Margin="8,0,0,0"/>
+                    <Button Content="Enregistrer" Margin="8,0,0,0" Click="BtnSaveNextFact_Click"/>
+                </StackPanel>
+            </GroupBox>
         </Grid>
     </Grid>
 </UserControl>

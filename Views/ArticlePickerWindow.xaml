@@ -1,0 +1,28 @@
+<Window x:Class="VorTech.App.Views.ArticlePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sélectionner un article" Height="520" Width="760"
+        WindowStartupLocation="CenterOwner" Background="#FF1E1E1E">
+  <DockPanel Margin="8">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <TextBox x:Name="TxtSearch" Width="480" Margin="0,0,8,0"
+               ToolTip="Code, libellé, catégorie…"
+               TextChanged="TxtSearch_TextChanged"
+               Background="#FF2B2B2B" Foreground="#FFEFEFEF" BorderBrush="#FF404040"/>
+      <Button Content="OK" Width="90" Margin="0,0,8,0" IsDefault="True" Click="Ok_Click"/>
+      <Button Content="Fermer" Width="90" IsCancel="True"/>
+    </StackPanel>
+
+    <ListBox x:Name="List"
+             Background="#FF2B2B2B" Foreground="#FFEFEFEF" BorderBrush="#FF404040"
+             MouseDoubleClick="List_MouseDoubleClick" SelectionMode="Single">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="4">
+                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+  </DockPanel>
+</Window>
