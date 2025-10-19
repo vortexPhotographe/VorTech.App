@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
@@ -16,7 +16,6 @@ namespace VorTech.App.Views
         private readonly ArticleService _articles = new ArticleService();
         private readonly ClientService _clients = new ClientService();
 
-
         private Devis? _current;
         private List<DevisLigne> _lines = new();
         private List<DevisAnnexe> _annexes = new();
@@ -25,14 +24,14 @@ namespace VorTech.App.Views
         {
             InitializeComponent();
             LoadList(null);
-            NewDraft(); // ouvre un brouillon vide par défaut
+            NewDraft(); // ouvre un brouillon vide par dÃ©faut
         }
 
         // --- Liste gauche ---
         private void LoadList(string? search)
         {
             var items = _devis.GetAll(search);
-            DevisList.ItemsSource = items; // ListBox nommé dans ton XAML
+            DevisList.ItemsSource = items; // ListBox nommÃ© dans ton XAML
         }
 
         private void OnSearchClick(object sender, RoutedEventArgs e)
@@ -86,7 +85,7 @@ namespace VorTech.App.Views
         private void SelectClient_Click(object sender, RoutedEventArgs e)
         {
             if (_current == null) return;
-            EnsureCurrentId(); // crée le brouillon s'il n'existe pas
+            EnsureCurrentId(); // crÃ©e le brouillon s'il n'existe pas
 
             var w = new ClientPickerWindow { Owner = Window.GetWindow(this) };
             if (w.ShowDialog() == true && w.Selected != null)
@@ -112,7 +111,7 @@ namespace VorTech.App.Views
             );
         }
 
-        // “Saisir rapide” = on efface le lien mais on laisse saisir à la main (non-lié)
+        // â€œSaisir rapideâ€ = on efface le lien mais on laisse saisir Ã  la main (non-liÃ©)
         private void QuickClient_Click(object sender, RoutedEventArgs e)
         {
             if (_current == null) return;
@@ -147,7 +146,7 @@ namespace VorTech.App.Views
             }
         }
 
-        // --- Lignes (boutons + édition) ---
+        // --- Lignes (boutons + Ã©dition) ---
         private void AddLine_Click(object sender, RoutedEventArgs e)
         {
             EnsureCurrentId();
@@ -164,12 +163,12 @@ namespace VorTech.App.Views
 
                 var designation = v == null
                     ? (a.Libelle ?? $"Article #{a.Id}")
-                    : $"{a.Libelle} — {v.Nom}";
+                    : $"{a.Libelle} â€” {v.Nom}";
 
                 var pu = v?.PrixVenteHT ?? a.PrixVenteHT;   // PU depuis variante si choisie
                 var variantId = w.SelectedVariantId;
 
-                // image: on verra ensuite ; mets null propre, pas la chaîne "null"
+                // image: on verra ensuite ; mets null propre, pas la chaÃ®ne "null"
                 string? img = null;
 
                 _devis.AddLine(_current!.Id, designation, 1m, pu, a.Id, variantId, img);
@@ -177,45 +176,86 @@ namespace VorTech.App.Views
                 _lines = _devis.GetLines(_current.Id);
                 _current = _devis.GetById(_current.Id);
                 BindCurrent();
+                LoadList(SearchBox.Text?.Trim());
             }
         }
 
         private void DuplicateLine_Click(object sender, RoutedEventArgs e)
         {
             if (GridLines.SelectedItem is not DevisLigne l || _current == null) return;
-            _devis.AddLine(_current.Id, l.Designation, l.Qty, l.PU, l.ArticleId, l.VarianteId, l.ImagePath);
+            _devis.RecalcTotals(_current.Id);   // recalcul
             _lines = _devis.GetLines(_current.Id);
             _current = _devis.GetById(_current.Id);
             BindCurrent();
+            LoadList(SearchBox.Text?.Trim());   // (facultatif mais recommandÃ©)
         }
 
         private void DeleteLine_Click(object sender, RoutedEventArgs e)
         {
-            if (GridLines.SelectedItem is not DevisLigne l) return;
+            if (_current == null) return;
+            EnsureCurrentId();
+            var id = _current.Id;
+            var l = (DevisLigne?)GridLines.SelectedItem;
+            if (l == null) return;
             _devis.DeleteLine(l.Id);
-            _lines.RemoveAll(x => x.Id == l.Id);
-            _current = _devis.GetById(_current!.Id);
+            // Recharger lignes + total
+            _devis.RecalcTotals(_current.Id);   // recalcul
+            _lines = _devis.GetLines(_current.Id);
+            _current = _devis.GetById(_current.Id);
             BindCurrent();
+            LoadList(SearchBox.Text?.Trim());   // (facultatif mais recommandÃ©)
         }
 
         private void CellEditEnded(object sender, DataGridCellEditEndingEventArgs e)
         {
+            // On n'agit que sur un commit rÃ©el (pas pendant lâ€™Ã©dition/annulation)
+            if (e.EditAction != DataGridEditAction.Commit) return;
+
             if (e.Row.Item is not DevisLigne l) return;
-            // récupère les nouvelles valeurs depuis l'objet lié (TwoWay par défaut sur TextColumn)
+
+            // ID sÃ»r pour toutes les opÃ©rations suivantes
+            var devisId = l.DevisId;
+
+            // Pousse la ligne Ã©ditÃ©e (les TextColumns sont TwoWay)
             _devis.UpdateLine(l.Id, l.Designation, l.Qty, l.PU);
-            _current = _devis.GetById(l.DevisId);
-            // refresh lignes
-            _lines = _devis.GetLines(l.DevisId);
+
+            // Recalcule le total du devis via l'ID (pas _current)
+            _devis.RecalcTotals(devisId);
+
+            // Recharge proprement objets & UI
+            _lines = _devis.GetLines(devisId);
+            _current = _devis.GetById(devisId);  // peut Ãªtre null si supprimÃ© entre-temps
+
+            if (_current == null)
+                return; // le devis n'existe plus (sÃ©curitÃ©)
+
             BindCurrent();
+            LoadList(SearchBox.Text?.Trim());
         }
 
         // --- Remise globale ---
         private void RemiseLostFocus(object sender, RoutedEventArgs e)
         {
             if (_current == null) return;
-            _devis.SetGlobalDiscount(_current.Id, _current.RemiseGlobale);
-            _current = _devis.GetById(_current.Id);
+            EnsureCurrentId();
+            var id = _current.Id;
+
+            // lire la valeur saisie (virgule/point tolÃ©rÃ©)
+            if (!decimal.TryParse(TxtRemise.Text?.Replace(',', '.'),
+                                  NumberStyles.Any, CultureInfo.InvariantCulture, out var r))
+                r = _current.RemiseGlobale;
+
+            // Ã©crire la remise + recalculer le total avec les bonnes mÃ©thodes
+            _devis.SetGlobalDiscount(id, r);
+            _devis.RecalcTotals(id);
+
+            // recharger & rafraÃ®chir lâ€™UI
+            _current = _devis.GetById(id);
+            _lines = _devis.GetLines(id);
             BindCurrent();
+
+            // rafraÃ®chir la liste de gauche
+            LoadList(SearchBox.Text?.Trim());
         }
 
         // --- Calcule cotisation et coup ---
@@ -247,29 +287,29 @@ namespace VorTech.App.Views
             var total = _current?.Total ?? 0m;
             var net = total - cout - charges;
 
-            TxtCostMatiere.Text = $"Coût matières : {cout:0.##} €";
-            TxtCharges.Text = $"Charges estimées : {charges:0.##} €";
-            TxtMarge.Text = $"Marge nette : {net:0.##} €";
+            TxtCostMatiere.Text = $"CoÃ»t matiÃ¨res : {cout:0.##} â‚¬";
+            TxtCharges.Text = $"Charges estimÃ©es : {charges:0.##} â‚¬";
+            TxtMarge.Text = $"Marge nette : {net:0.##} â‚¬";
         }
 
-        // --- Emission (numérotation) ---
+        // --- Emission (numÃ©rotation) ---
         private void Emit_Click(object sender, RoutedEventArgs e)
         {
             EnsureCurrentId();
             var pdf = _devis.Emit(_current!.Id, _num);
             _current = _devis.GetById(_current.Id);
             BindCurrent();
-            MessageBox.Show($"Devis émis : {_current!.Numero}\nPDF: {pdf}", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"Devis Ã©mis : {_current!.Numero}\nPDF: {pdf}", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // --- Utilitaires ---
         private void EnsureCurrentId()
         {
-            if (_current == null) throw new InvalidOperationException("Devis non initialisé.");
+            if (_current == null) throw new InvalidOperationException("Devis non initialisÃ©.");
             if (_current.Id > 0) return;
 
-            // Créer en base le brouillon (avec snapshot client si tu as un Client sélectionné)
-            var id = _devis.CreateDraft(_current.ClientId, null /* snapshot à brancher si client choisi */);
+            // CrÃ©er en base le brouillon (avec snapshot client si tu as un Client sÃ©lectionnÃ©)
+            var id = _devis.CreateDraft(_current.ClientId, null /* snapshot Ã  brancher si client choisi */);
             _current = _devis.GetById(id);
         }
 
@@ -277,24 +317,43 @@ namespace VorTech.App.Views
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             if (_current == null) return;
-            EnsureCurrentId(); // crée le brouillon si nécessaire
+            EnsureCurrentId();
+            var id = _current.Id;
 
-            // push des champs saisis à la main
-            _devis.UpdateClientFields(
-                _current.Id,
-                _current.ClientSociete,
-                _current.ClientNomPrenom,
-                _current.ClientAdresseL1,
-                _current.ClientCodePostal,
-                _current.ClientVille,
-                _current.ClientEmail,
-                _current.ClientTelephone
-            );
+            // 1) Sauver la remise (mÃªme si la TextBox a encore le focus)
+            if (!decimal.TryParse(TxtRemise.Text?.Replace(',', '.'),
+                                  NumberStyles.Any, CultureInfo.InvariantCulture, out var r))
+                r = _current.RemiseGlobale;
 
-            // recharger l’objet et rafraîchir l’UI
-            _current = _devis.GetById(_current.Id);
+            _devis.SetGlobalDiscount(id, r);  // âœ… la bonne mÃ©thode
+            _devis.RecalcTotals(id);          // âœ… recalcul avec lâ€™API existante
+
+            // 2) Sauver les champs client
+            _devis.UpdateClientFields(id,
+                _current.ClientSociete, _current.ClientNomPrenom,
+                _current.ClientAdresseL1, _current.ClientCodePostal, _current.ClientVille,
+                _current.ClientEmail, _current.ClientTelephone);
+
+            // 3) Recharger + UI
+            _lines = _devis.GetLines(id);
+            _current = _devis.GetById(id);
             BindCurrent();
-            MessageBox.Show("Devis enregistré.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+            LoadList(SearchBox.Text?.Trim());
+        }
+
+        // SUPRESSION Devis
+        private void Delete_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null || _current.Id <= 0) return;
+            var ask = MessageBox.Show("Supprimer ce devis ? (corbeille 30 jours)", "Confirmer",
+                                      MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (ask != MessageBoxResult.Yes) return;
+
+            _devis.SoftDelete(_current.Id);
+
+            // reload liste + ouvrir un nouveau brouillon
+            LoadList(SearchBox.Text?.Trim());
+            NewDraft();
         }
 
     }

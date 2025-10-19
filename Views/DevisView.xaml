@@ -27,10 +27,11 @@
                 <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                <Button Content="Enregistrer" Click="Save_Click" />
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="200,0">
+                <Button Content="Enregistrer" Click="Save_Click" Margin="4,0"/>
                 <Button Content="Générer PDF" Padding="12,6" Margin="4,0"/>
                 <Button Content="Émettre (numéro)" Padding="12,6" Margin="4,0" Click="Emit_Click"/>
+                <Button Content="Supprimer" Click="Delete_Click" Margin="4,0"/>
             </StackPanel>
         </DockPanel>
 
@@ -56,16 +57,121 @@
 
                 <!-- LISTE DES DEVIS -->
                 <GroupBox Header="Devis" DockPanel.Dock="Bottom">
-                    <ListBox x:Name="DevisList" MinHeight="500"
-                             SelectionChanged="OnListSelectionChanged"
-                             Background="#FF2B2B2B" BorderBrush="#FF404040" Foreground="#FFEFEFEF"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox x:Name="DevisList"
+         SelectionChanged="OnListSelectionChanged"
+         Background="#252525" BorderBrush="#3A3A3A" Foreground="#EFEFEF"
+         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="6"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <DockPanel Margin="4">
-                                    <TextBlock Text="{Binding Etat}" Foreground="Gray" DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Numero}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                </DockPanel>
+                                <Border Padding="10" BorderThickness="1" BorderBrush="#404040" CornerRadius="3" Background="#2B2B2B">
+                                    <StackPanel>
+                                        <!-- L1 : Numéro (ou Brouillon) -->
+                                        <TextBlock FontWeight="SemiBold">
+                                            <TextBlock.Text>
+                                                <Binding Path="Numero" TargetNullValue="Brouillon">
+                                                    <Binding.FallbackValue>Brouillon</Binding.FallbackValue>
+                                                </Binding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+
+                                        <!-- L2 : Société si présente -->
+                                        <TextBlock Text="{Binding ClientSociete}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- L2 bis : Nom Prénom si pas de société -->
+                                        <TextBlock Text="{Binding ClientNomPrenom}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- L2 ter : Fallback legacy -> ClientNom -->
+                                        <TextBlock Text="{Binding ClientNom}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding ClientSociete}" Value=""/>
+                                                                <Condition Binding="{Binding ClientNomPrenom}" Value=""/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding ClientSociete}" Value="{x:Null}"/>
+                                                                <Condition Binding="{Binding ClientNomPrenom}" Value="{x:Null}"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- L2 quad : rien du tout -> message -->
+                                        <TextBlock Text="(Destinataire non renseigné)" Foreground="#B0B0B0" FontStyle="Italic">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding ClientSociete}" Value=""/>
+                                                                <Condition Binding="{Binding ClientNomPrenom}" Value=""/>
+                                                                <Condition Binding="{Binding ClientNom}" Value=""/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding ClientSociete}" Value="{x:Null}"/>
+                                                                <Condition Binding="{Binding ClientNomPrenom}" Value="{x:Null}"/>
+                                                                <Condition Binding="{Binding ClientNom}" Value="{x:Null}"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- L3 : État -->
+                                        <TextBlock Text="{Binding Etat}" FontStyle="Italic" Foreground="#B0B0B0"/>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -88,27 +194,26 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="160"/>
                                 <!-- labels -->
                                 <ColumnDefinition Width="*"/>
                                 <!-- champs -->
-                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="160"/>
                                 <!-- labels -->
                                 <ColumnDefinition Width="*"/>
                                 <!-- champs -->
                             </Grid.ColumnDefinitions>
 
-                            <!-- Ligne 0 : Sélection client -->
-                            <Label Grid.Row="0" Grid.Column="0" Content="Client" VerticalAlignment="Center"/>
+                            <!-- Ligne 0 : Titre (champ libre) + Sélection client -->
+                            <Label Grid.Row="0" Grid.Column="0" Content="Titre" VerticalAlignment="Center"/>
                             <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBox Grid.Column="0" x:Name="TxtClientQuick"
-                                       ToolTip="Recherche libre (facultatif)"
-                                       Margin="0,0,8,0"/>
-                                <!-- NE PAS mettre de contenu entre <Button>...</Button> si Content=... est déjà utilisé -->
+                                         ToolTip="Titre libre du devis (facultatif)"
+                                         Margin="0,4,8,4"/>
                                 <Button Grid.Column="1" Content="Sélectionner…" Padding="10,6"
                                         Click="SelectClient_Click"/>
                             </Grid>
@@ -119,33 +224,33 @@
                                      Text="{Binding ClientSociete, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
                             <Label Grid.Row="1" Grid.Column="2" Content="Nom Prénom" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,0,4"
+                            <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,8,4"
                                      Text="{Binding ClientNomPrenom, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
 
                             <!-- Ligne 2 : Adresse -->
                             <Label Grid.Row="2" Grid.Column="0" Content="Adresse" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,0,4"
+                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,8,4"
                                      Text="{Binding ClientAdresseL1, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
 
                             <!-- Ligne 3 : CP / Ville -->
                             <Label Grid.Row="3" Grid.Column="0" Content="Code postal" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,4,8,0" Width="120"
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,4,8,4" Width="120"
                                      Text="{Binding ClientCodePostal, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
                             <Label Grid.Row="3" Grid.Column="2" Content="Ville" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="3" Grid.Column="3" Margin="0,4,0,0"
+                            <TextBox Grid.Row="3" Grid.Column="3" Margin="0,4,8,4"
                                      Text="{Binding ClientVille, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
 
                             <!-- Ligne 4 : Email / Téléphone -->
                             <Label Grid.Row="4" Grid.Column="0" Content="Email" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,4,8,0"
+                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,4,8,4"
                                      Text="{Binding ClientEmail, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
                             <Label Grid.Row="4" Grid.Column="2" Content="Téléphone" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="3" Margin="0,4,0,0"
+                            <TextBox Grid.Row="4" Grid.Column="3" Margin="0,4,8,4"
                                      Text="{Binding ClientTelephone, UpdateSourceTrigger=LostFocus}"
                                      LostFocus="ClientFields_LostFocus"/>
                         </Grid>
@@ -206,11 +311,7 @@
                             <TextBlock Text=" " Width="8"/>
 
                             <!-- ✅ Binding en markup étendu pour éviter les erreurs de parsing -->
-                            <TextBox Width="120" LostFocus="RemiseLostFocus">
-                                <TextBox.Text>
-                                    <Binding Path="RemiseGlobale" UpdateSourceTrigger="LostFocus" StringFormat="{}{0:0.##}"/>
-                                </TextBox.Text>
-                            </TextBox>
+                            <TextBox x:Name="TxtRemise" Width="140" Text="{Binding RemiseGlobale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">

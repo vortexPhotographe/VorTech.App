@@ -26,7 +26,7 @@ namespace VorTech.App.Services
         void UpdateClientFields(int devisId, string? societe, string? nomPrenom,
                                 string? adresse, string? cp, string? ville,
                                 string? email, string? telephone);
-
+        void SoftDelete(int id);
         List<Devis> GetAll(string? search = null);
         List<DevisLigne> GetLines(int devisId);
         List<DevisAnnexe> GetAnnexes(int devisId);
@@ -322,7 +322,16 @@ WHERE Id=@id;";
             cmd.ExecuteNonQuery();
         }
 
-
+        // DEVIS Supression
+        public void SoftDelete(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "UPDATE Devis SET DeletedAt=@ts WHERE Id=@id;";
+            Db.AddParam(cmd, "@ts", DateTime.Now.ToString("s", CultureInfo.InvariantCulture));
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
+        }
         public string Emit(int devisId, INumberingService numbering)
         {
             using var cn = Db.Open();
@@ -357,6 +366,7 @@ WHERE Id=@id;";
 
             return final;
         }
+
 
         public void MarkTransformed(int devisId)
         {
