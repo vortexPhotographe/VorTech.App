@@ -25,7 +25,8 @@ namespace VorTech.App.Models
         public decimal Total { get; set; }
 
         public DateTime? DeletedAt { get; set; }
-        
+        public int? BankAccountId { get; set; }
+
     }
 
     public class DevisLigne

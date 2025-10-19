@@ -27,6 +27,7 @@ namespace VorTech.App.Services
                                 string? adresse, string? cp, string? ville,
                                 string? email, string? telephone);
         void SoftDelete(int id);
+        void SetBankAccount(int devisId, int? bankAccountId);
         List<Devis> GetAll(string? search = null);
         List<DevisLigne> GetLines(int devisId);
         List<DevisAnnexe> GetAnnexes(int devisId);
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS Devis (
   NoteHaut TEXT, NoteBas TEXT,
   RemiseGlobale REAL NOT NULL DEFAULT 0,
   Total REAL NOT NULL DEFAULT 0,
-  DeletedAt TEXT NULL
+  DeletedAt TEXT NULL,
+  BankAccountId INTEGER NULL
 );
 CREATE INDEX IF NOT EXISTS IX_Devis_Date ON Devis(Date);
 CREATE INDEX IF NOT EXISTS IX_Devis_Client ON Devis(ClientId);
@@ -83,6 +85,29 @@ CREATE TABLE IF NOT EXISTS DevisAnnexes (
 );
 CREATE INDEX IF NOT EXISTS IX_DevisAnnexes_Devis ON DevisAnnexes(DevisId);";
             cmd.ExecuteNonQuery();
+            try
+            {
+                using var alter = cn.CreateCommand();
+                alter.CommandText = "ALTER TABLE Devis ADD COLUMN BankAccountId INTEGER NULL;";
+                alter.ExecuteNonQuery();
+            }
+            catch { /* colonne déjà présente */ }
+
+            try
+            {
+                using var add1 = cn.CreateCommand();
+                add1.CommandText = "ALTER TABLE Devis ADD COLUMN ClientSociete TEXT NULL;";
+                add1.ExecuteNonQuery();
+            }
+            catch { /* colonne déjà là */ }
+
+            try
+            {
+                using var add2 = cn.CreateCommand();
+                add2.CommandText = "ALTER TABLE Devis ADD COLUMN ClientNomPrenom TEXT NULL;";
+                add2.ExecuteNonQuery();
+            }
+            catch { /* colonne déjà là */ }
         }
 
         public int CreateDraft(int? clientId, Client? s = null)
@@ -322,6 +347,18 @@ WHERE Id=@id;";
             cmd.ExecuteNonQuery();
         }
 
+        // Compte bancaire
+        public void SetBankAccount(int devisId, int? bankAccountId)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "UPDATE Devis SET BankAccountId=@b WHERE Id=@id;";
+            Db.AddParam(cmd, "@b", (object?)bankAccountId ?? DBNull.Value);
+            Db.AddParam(cmd, "@id", devisId);
+            cmd.ExecuteNonQuery();
+        }
+
+
         // DEVIS Supression
         public void SoftDelete(int id)
         {
@@ -455,6 +492,7 @@ ORDER BY Date DESC, Id DESC;";
             NoteBas = r["NoteBas"]?.ToString(),
             RemiseGlobale = Convert.ToDecimal(r["RemiseGlobale"], CultureInfo.InvariantCulture),
             Total = Convert.ToDecimal(r["Total"], CultureInfo.InvariantCulture),
+            BankAccountId = r["BankAccountId"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["BankAccountId"]),
             DeletedAt = r["DeletedAt"] == DBNull.Value ? (DateTime?)null : DateTime.Parse(r["DeletedAt"].ToString()!)
         };
 

@@ -11,10 +11,10 @@ namespace VorTech.App.Views
     public partial class DevisView : UserControl
     {
         private readonly IDevisService _devis = new DevisService();
-        private readonly INumberingService _num = new NumberingService();
-        // pour recherche client si besoin :contentReference[oaicite:6]{index=6}                                                                        // par celles-ci :
+        private readonly INumberingService _num = new NumberingService();                                                                     // par celles-ci :
         private readonly ArticleService _articles = new ArticleService();
         private readonly ClientService _clients = new ClientService();
+        private readonly BankAccountService _bank = new BankAccountService();
 
         private Devis? _current;
         private List<DevisLigne> _lines = new();
@@ -23,6 +23,7 @@ namespace VorTech.App.Views
         public DevisView()
         {
             InitializeComponent();
+            CmbBank.ItemsSource = _bank.GetAll();
             LoadList(null);
             NewDraft(); // ouvre un brouillon vide par défaut
         }
@@ -75,6 +76,8 @@ namespace VorTech.App.Views
 
         private void BindCurrent()
         {
+            if (_current != null)
+                CmbBank.SelectedValue = _current.BankAccountId;
             DataContext = _current;
             GridLines.ItemsSource = _lines;
             ListAnnexes.ItemsSource = _annexes;
@@ -295,11 +298,19 @@ namespace VorTech.App.Views
         // --- Emission (numérotation) ---
         private void Emit_Click(object sender, RoutedEventArgs e)
         {
+            // 1) s'assurer que l'ID est là
             EnsureCurrentId();
-            var pdf = _devis.Emit(_current!.Id, _num);
-            _current = _devis.GetById(_current.Id);
+            var id = _current!.Id;
+
+            // 2) émettre avec la numérotation
+            var num = new NumberingService();                  // même type que dans SettingsView
+            var finalPath = _devis.Emit(id, num);              // pose Numero + Etat='Envoye'
+
+            // 3) recharger & rafraîchir UI/liste
+            _lines = _devis.GetLines(id);
+            _current = _devis.GetById(id);
             BindCurrent();
-            MessageBox.Show($"Devis émis : {_current!.Numero}\nPDF: {pdf}", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+            LoadList(SearchBox.Text?.Trim());
         }
 
         // --- Utilitaires ---
@@ -354,6 +365,14 @@ namespace VorTech.App.Views
             // reload liste + ouvrir un nouveau brouillon
             LoadList(SearchBox.Text?.Trim());
             NewDraft();
+        }
+
+        private void CmbBank_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_current == null || _current.Id <= 0) return;
+            // peut être null si aucun compte sélectionné
+            var selected = CmbBank.SelectedValue as int?;
+            _devis.SetBankAccount(_current.Id, selected);
         }
 
     }

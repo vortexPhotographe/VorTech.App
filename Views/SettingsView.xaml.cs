@@ -19,6 +19,7 @@ namespace VorTech.App.Views
         private ObservableCollection<CotiVM> _cotis = new();
         private CompanyProfile _company = new CompanyProfile();
         private readonly INumberingService _num = new NumberingService();
+        private readonly BankAccountService _bank = new BankAccountService();
 
         public SettingsView()
         {
@@ -26,6 +27,7 @@ namespace VorTech.App.Views
             LoadGeneral();
             ShowPanel(PanelGeneral);
             LoadArticles();
+            LoadBankAccounts();
         }
 
         // ---------- Panels ----------
@@ -185,6 +187,64 @@ namespace VorTech.App.Views
             if (sel.Id == 0) { _cotis.Remove(sel); return; }
             _catalogs.DeleteCotisationType(sel.Id);
             _cotis.Remove(sel);
+        }
+
+        // --- CompteBancaire ---
+        private void LoadBankAccounts()
+        {
+            var list = _bank.GetAll();
+            GridBank.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<BankAccount>(list);
+        }
+
+        private void BtnBankAdd_Click(object sender, RoutedEventArgs e)
+        {
+            // Ajoute une ligne en mémoire
+            var oc = GridBank.ItemsSource as System.Collections.ObjectModel.ObservableCollection<BankAccount>;
+            if (oc == null) return;
+            oc.Add(new BankAccount { DisplayName = "Nouveau compte", Iban = "", Bic = "", Holder = "", BankName = "", IsDefault = oc.Count == 0 });
+        }
+
+        private void BtnBankSave_Click(object sender, RoutedEventArgs e)
+        {
+            var oc = GridBank.ItemsSource as System.Collections.ObjectModel.ObservableCollection<BankAccount>;
+            if (oc == null) return;
+
+            foreach (var b in oc)
+            {
+                if (b.Id == 0) b.Id = _bank.Insert(b);
+                else _bank.Update(b);
+            }
+
+            // Si plusieurs IsDefault = true, garde seulement le premier
+            var defaults = 0;
+            foreach (var b in oc)
+            {
+                if (b.IsDefault)
+                {
+                    defaults++;
+                    if (defaults > 1) { b.IsDefault = false; _bank.Update(b); }
+                }
+            }
+
+            LoadBankAccounts();
+            MessageBox.Show("Comptes bancaires enregistrés.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnBankDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridBank.SelectedItem is not BankAccount b) return;
+            if (b.Id == 0)
+            {
+                var oc = GridBank.ItemsSource as System.Collections.ObjectModel.ObservableCollection<BankAccount>;
+                oc?.Remove(b);
+                return;
+            }
+            var ask = MessageBox.Show("Supprimer ce compte bancaire ?", "Confirmer",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (ask != MessageBoxResult.Yes) return;
+
+            _bank.Delete(b.Id);
+            LoadBankAccounts();
         }
 
         // --- CompanyProfile

@@ -379,10 +379,15 @@
                     </StackPanel>
                 </GroupBox>
 
-                <GroupBox Header="Compte bancaire (pied de page)" Background="#FFF7F7F7" BorderBrush="#FFDDDDDD" BorderThickness="1">
+                <GroupBox Header="Compte bancaire (pied de page)" Margin="0,12,0,0">
                     <StackPanel Margin="8">
-                        <TextBlock Text="Choisir le compte à afficher en pied de page (IBAN/BIC)"/>
-                        <ComboBox ItemsSource="{Binding ComptesBancaires}" DisplayMemberPath="Libelle" SelectedItem="{Binding CompteBancaireSelectionne}" Margin="0,6,0,0"/>
+                        <ComboBox x:Name="CmbBank"
+              DisplayMemberPath="DisplayName"
+              SelectedValuePath="Id"
+              SelectionChanged="CmbBank_SelectionChanged"
+              Width="260"/>
+                        <TextBlock Text="Choisissez le compte qui sera affiché en pied de page du PDF."
+               Foreground="#B0B0B0" Margin="0,6,0,0"/>
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

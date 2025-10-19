@@ -84,6 +84,22 @@ VALUES(1, '', '', '', '', '', '', '', '', '', '');";
                 }
             }
 
+            // --- BankAccounts ----
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS BankAccounts(
+  Id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  DisplayName TEXT    NOT NULL,   -- ex: 'Compte Pro Société Générale'
+  Iban        TEXT    NOT NULL,
+  Bic         TEXT    NOT NULL,
+  Holder      TEXT    NOT NULL,   -- Titulaire
+  BankName    TEXT    NOT NULL,   -- Nom de la banque
+  IsDefault   INTEGER NOT NULL DEFAULT 0
+);";
+                cmd.ExecuteNonQuery();
+            }
+
             // Seed TVA si vide
             using (var check = cn.CreateCommand())
             {

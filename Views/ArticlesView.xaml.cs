@@ -982,5 +982,10 @@ namespace VorTech.App.Views
             // sécurité : on bloque toute entrée en édition
             e.Cancel = true;
         }
+
+        private void TvaBox_SelectionChanged_1(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }
