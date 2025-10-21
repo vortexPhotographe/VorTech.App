@@ -370,10 +370,38 @@ namespace VorTech.App.Views
         private void CmbBank_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_current == null || _current.Id <= 0) return;
-            // peut être null si aucun compte sélectionné
-            var selected = CmbBank.SelectedValue as int?;
-            _devis.SetBankAccount(_current.Id, selected);
+            var id = CmbBank.SelectedValue as int?;
+            _devis.SetBankAccount(_current.Id, id);
+            // recharge proprement l'objet courant
+            _current = _devis.GetById(_current.Id);
+            BindCurrent();
         }
+
+        private void BtnEmit_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId();                                  // crée un enregistrement s'il n'existe pas encore
+
+            try
+            {
+                var pdfPath = _devis.Emit(_current!.Id, _num); // génère DEVI-YYYY-MM-####
+                                                               // recharger la fiche et la liste (numéro + état changent)
+                _current = _devis.GetById(_current.Id);
+                if (_current == null) return;
+                _lines = _devis.GetLines(_current.Id);
+                BindCurrent();
+                LoadList(SearchBox.Text?.Trim());
+
+                MessageBox.Show($"Devis émis : {_current?.Numero}\nPDF : {pdfPath}", "OK",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Échec de l'émission : " + ex.Message, "Erreur",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
 
     }
 }

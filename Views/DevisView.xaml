@@ -5,6 +5,105 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="1400" d:DesignHeight="860">
+    <UserControl.Resources>
+        <!-- TextBox sombre (pour les champs de saisie) -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#232323"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="Padding" Value="6,3"/>
+        </Style>
+
+        <!-- Items de ComboBox (ligne dans le menu déroulant) -->
+        <Style x:Key="DarkComboItem" TargetType="{x:Type ComboBoxItem}">
+            <Setter Property="Foreground" Value="#D0D0D0"/>
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Padding"    Value="8,4"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#383838"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#404040"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ComboBox sombre (non éditable, popup sombre) -->
+        <Style x:Key="DarkCombo" TargetType="{x:Type ComboBox}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Foreground" Value="#D0D0D0"/>
+            <Setter Property="Background" Value="#232323"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBox}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="20"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- zone sélection -->
+                            <Border x:Name="Border" Grid.ColumnSpan="2"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" CornerRadius="2"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                      Margin="6,2,20,2"
+                                      VerticalAlignment="Center"
+                                      Content="{TemplateBinding SelectionBoxItem}"
+                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+
+                            <!-- bouton flèche -->
+                            <ToggleButton Grid.Column="1"
+                  x:Name="DropDownToggle"
+                  Focusable="False"
+                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}">
+                                <Path HorizontalAlignment="Center" VerticalAlignment="Center"
+            Data="M 0 0 L 4 4 L 8 0 Z" Fill="#D0D0D0"/>
+                            </ToggleButton>
+
+                            <!-- popup -->
+                            <Popup x:Name="PART_Popup"
+           Placement="Bottom"
+           IsOpen="{TemplateBinding IsDropDownOpen}"
+           AllowsTransparency="True" Focusable="False"
+           PopupAnimation="Slide">
+                                <Border Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <!-- états -->
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4A4A4A"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#888"/>
+                                <Setter TargetName="Border" Property="Background" Value="#1C1C1C"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2C2C2C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <!-- style appliqué aux items -->
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
+        </Style>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -30,7 +129,7 @@
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="200,0">
                 <Button Content="Enregistrer" Click="Save_Click" Margin="4,0"/>
                 <Button Content="Générer PDF" Padding="12,6" Margin="4,0"/>
-                <Button Content="Émettre (numéro)" Padding="12,6" Margin="4,0" Click="Emit_Click"/>
+                <Button x:Name="BtnEmit" Content="Émettre (numéro)" Click="BtnEmit_Click" Margin="4,0"/>
                 <Button Content="Supprimer" Click="Delete_Click" Margin="4,0"/>
             </StackPanel>
         </DockPanel>
@@ -382,10 +481,12 @@
                 <GroupBox Header="Compte bancaire (pied de page)" Margin="0,12,0,0">
                     <StackPanel Margin="8">
                         <ComboBox x:Name="CmbBank"
-              DisplayMemberPath="DisplayName"
-              SelectedValuePath="Id"
-              SelectionChanged="CmbBank_SelectionChanged"
-              Width="260"/>
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Id"
+                                  Style="{StaticResource DarkCombo}"
+                                  SelectedValue="{Binding BankAccountId, Mode=TwoWay}"
+                                  SelectionChanged="CmbBank_SelectionChanged"
+                                  Width="260"/>
                         <TextBlock Text="Choisissez le compte qui sera affiché en pied de page du PDF."
                Foreground="#B0B0B0" Margin="0,6,0,0"/>
                     </StackPanel>
