@@ -5,7 +5,151 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="700">
+    <UserControl.Resources>
 
+        <!-- GroupBox : bordure fine + titre un peu plus grand -->
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Grid SnapsToDevicePixels="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- En-tête -->
+                            <Border Background="{TemplateBinding Background}" Padding="4,0,4,0">
+                                <ContentPresenter ContentSource="Header">
+                                    <ContentPresenter.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="13"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Foreground" Value="#E0E0E0"/>
+                                        </Style>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </Border>
+
+                            <!-- Corps -->
+                            <Border Grid.Row="1"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="2"
+                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox sombre (pour les champs de saisie) -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#232323"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="Padding" Value="6,3"/>
+        </Style>
+
+        <!-- Items de ComboBox (ligne dans le menu déroulant) -->
+        <Style x:Key="DarkComboItem" TargetType="{x:Type ComboBoxItem}">
+            <Setter Property="Foreground" Value="#D0D0D0"/>
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Padding"    Value="8,4"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#383838"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#404040"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ComboBox sombre (non éditable, popup sombre) -->
+        <Style x:Key="DarkCombo" TargetType="{x:Type ComboBox}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Foreground" Value="#D0D0D0"/>
+            <Setter Property="Background" Value="#232323"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBox}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="20"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- zone sélection -->
+                            <Border x:Name="Border" Grid.ColumnSpan="2"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1" CornerRadius="2"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              Margin="6,2,20,2"
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+
+                            <!-- bouton flèche -->
+                            <ToggleButton Grid.Column="1"
+                          x:Name="DropDownToggle"
+                          Focusable="False"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}">
+                                <Path HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Data="M 0 0 L 4 4 L 8 0 Z" Fill="#D0D0D0"/>
+                            </ToggleButton>
+
+                            <!-- popup -->
+                            <Popup x:Name="PART_Popup"
+                   Placement="Bottom"
+                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                   AllowsTransparency="True" Focusable="False"
+                   PopupAnimation="Slide">
+                                <Border Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <!-- états -->
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#4A4A4A"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#888"/>
+                                <Setter TargetName="Border" Property="Background" Value="#1C1C1C"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2C2C2C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <!-- style appliqué aux items -->
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
+        </Style>
+
+    </UserControl.Resources>
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220"/>
@@ -208,8 +352,10 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="Devis :" Width="70" VerticalAlignment="Center"/>
                                 <TextBox  x:Name="TxtPatternDevis" Width="300" Margin="0,0,6,0"/>
-                                <ComboBox x:Name="CmbScopeDevis" Width="90"
-                                            Background="Transparent" BorderBrush="#3A3A3A" Foreground="#B0B0B0">
+                                <ComboBox x:Name="CmbScopeDevis" 
+                                          SelectedValuePath="Content" 
+                                          Width="110" 
+                                          Style="{StaticResource DarkCombo}">
                                     <ComboBoxItem Content="MONTHLY"/>
                                     <ComboBoxItem Content="YEARLY"/>
                                 </ComboBox>
@@ -218,8 +364,10 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Factures :" Width="70" VerticalAlignment="Center"/>
                                 <TextBox  x:Name="TxtPatternFact" Width="300" Margin="0,0,6,0"/>
-                                <ComboBox x:Name="CmbScopeFact" Width="90"
-                                            Background="#242424" BorderBrush="#3A3A3A" Foreground="#B0B0B0">
+                                <ComboBox x:Name="CmbScopeFact" 
+                                          SelectedValuePath="Content" 
+                                          Width="110" 
+                                          Style="{StaticResource DarkCombo}">
                                     <ComboBoxItem Content="MONTHLY"/>
                                     <ComboBoxItem Content="YEARLY"/>
                                 </ComboBox>

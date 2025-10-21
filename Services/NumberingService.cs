@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Globalization;
 using VorTech.App;
 
@@ -6,9 +6,9 @@ namespace VorTech.App.Services
 {
     public interface INumberingService
     {
-        string Next(string docType, DateOnly docDate);             // DEVI / FACT
-        (string pattern, string scope) GetFormat(string docType);  // pour Réglages
-        void SetFormat(string docType, string pattern, string scope);
+        string Next(string docType, DateOnly docDate);
+        (string pattern, string scope) GetFormat(string docType);
+        void SetFormat(string docType, string pattern, string scope); // ğŸ‘ˆ câ€™est ce nom-lÃ 
         int GetNextSeq(string docType, DateOnly date);
         void SetNextSeq(string docType, DateOnly date, int nextSeq);
     }
@@ -46,10 +46,10 @@ ON CONFLICT(DocType,PeriodKey) DO NOTHING;";
                 next = Convert.ToInt32(sel.ExecuteScalar() ?? 1, CultureInfo.InvariantCulture);
             }
 
-            // formater le numéro
+            // formater le numÃ©ro
             var numero = Format(pattern, docDate, next);
 
-            // incrémenter
+            // incrÃ©menter
             using (var upd = cn.CreateCommand())
             {
                 upd.Transaction = tx;
@@ -72,7 +72,7 @@ ON CONFLICT(DocType,PeriodKey) DO NOTHING;";
             Db.AddParam(cmd, "@d", docType);
             using var rd = cmd.ExecuteReader();
             if (rd.Read()) return (rd.GetString(0), rd.GetString(1));
-            // défauts si non seedé
+            // dÃ©fauts si non seedÃ©
             return (docType + "-{yyyy}-{MM}-{####}", "MONTHLY");
         }
 
@@ -101,6 +101,24 @@ ON CONFLICT(DocType) DO UPDATE SET Pattern=@p, Scope=@s;";
             Db.AddParam(cmd, "@p", key);
             var obj = cmd.ExecuteScalar();
             return obj == null ? 1 : Convert.ToInt32(obj, CultureInfo.InvariantCulture);
+        }
+
+        public void SaveFormat(string docType, string pattern, string scope)
+        {
+            using var cn = Db.Open();
+            cn.Open();
+            using var tx = cn.BeginTransaction();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO DocNumberingFormats (DocType, Pattern, Scope)
+VALUES (@t, @p, @s)
+ON CONFLICT(DocType) DO UPDATE
+SET Pattern = excluded.Pattern, Scope = excluded.Scope;";
+            cmd.Parameters.AddWithValue("@t", docType);
+            cmd.Parameters.AddWithValue("@p", pattern ?? "");
+            cmd.Parameters.AddWithValue("@s", scope ?? "MONTHLY");
+            cmd.ExecuteNonQuery();
+            tx.Commit();
         }
 
         public void SetNextSeq(string docType, DateOnly date, int nextSeq)
@@ -139,7 +157,7 @@ ON CONFLICT(DocType,PeriodKey) DO UPDATE SET NextSeq=@n;";
                 .Replace("{dd}", date.ToString("dd", CultureInfo.InvariantCulture));
 
             // {####...} = padding
-            // on cherche la première occurrence
+            // on cherche la premiÃ¨re occurrence
             var start = s.IndexOf('{');
             var end = s.IndexOf('}', start + 1);
             if (start >= 0 && end > start)

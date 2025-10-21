@@ -230,6 +230,22 @@ namespace VorTech.App.Views
             MessageBox.Show("Comptes bancaires enregistrés.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        private static void SelectByContent(ComboBox cb, string? value, string fallback = "MONTHLY")
+        {
+            var wanted = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+            foreach (var item in cb.Items)
+            {
+                if (item is ComboBoxItem cbi &&
+                    string.Equals(cbi.Content?.ToString(), wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    cb.SelectedItem = cbi;
+                    return;
+                }
+            }
+            // rien trouvé -> premier item
+            if (cb.Items.Count > 0) cb.SelectedIndex = 0;
+        }
+
         private void BtnBankDelete_Click(object sender, RoutedEventArgs e)
         {
             if (GridBank.SelectedItem is not BankAccount b) return;
@@ -279,11 +295,21 @@ namespace VorTech.App.Views
         // --- Devis et Facture
         private void BtnSaveFormats_Click(object sender, RoutedEventArgs e)
         {
-            var scopeDev = ((ComboBoxItem)CmbScopeDevis.SelectedItem)?.Content?.ToString() ?? "MONTHLY";
-            var scopeFac = ((ComboBoxItem)CmbScopeFact.SelectedItem)?.Content?.ToString() ?? "MONTHLY";
-            _num.SetFormat("DEVI", TxtPatternDevis.Text?.Trim() ?? "DEVI-{yyyy}-{MM}-{####}", scopeDev);
-            _num.SetFormat("FACT", TxtPatternFact.Text?.Trim() ?? "FACT-{yyyy}-{MM}-{####}", scopeFac);
-            MessageBox.Show("Formats enregistrés.");
+            var devisPattern = (TxtPatternDevis.Text ?? string.Empty).Trim();
+            var factPattern = (TxtPatternFact.Text ?? string.Empty).Trim();
+
+            string GetScope(ComboBox cb)
+                => (cb.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "MONTHLY";
+
+            var devisScope = GetScope(CmbScopeDevis);   // "MONTHLY" / "YEARLY"
+            var factScope = GetScope(CmbScopeFact);
+
+            // 👉 INumberingService::SetFormat (pas AppConfig)
+            _num.SetFormat("DEVI", devisPattern, devisScope);
+            _num.SetFormat("FACT", factPattern, factScope);
+
+            MessageBox.Show("Formats enregistrés.", "OK",
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void BtnSaveNextDevis_Click(object sender, RoutedEventArgs e)
