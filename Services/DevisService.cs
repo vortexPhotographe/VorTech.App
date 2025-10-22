@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using VorTech.App.Models;
+using static QRCoder.PayloadGenerator.SwissQrCode;
 
 namespace VorTech.App.Services
 {
@@ -371,37 +372,154 @@ WHERE Id=@id;";
         }
         public string Emit(int devisId, INumberingService numbering)
         {
+            if (devisId <= 0) throw new ArgumentException("devisId invalide");
+
             using var cn = Db.Open();
+            using var tr = cn.BeginTransaction();
 
-            // date du devis
-            DateOnly date;
-            using (var get = cn.CreateCommand())
+            // --- 1) Relire le devis (pour savoir s’il a déjà un numéro)
+            using var cmdGet = cn.CreateCommand();
+            cmdGet.Transaction = tr;
+            cmdGet.CommandText = @"
+        SELECT Id, Numero, Date, ClientSociete, ClientNomPrenom, ClientAdresseL1, ClientCodePostal, ClientVille
+        FROM Devis
+        WHERE Id = @id;";
+            Db.AddParam(cmdGet, "@id", devisId);
+            using var rd = cmdGet.ExecuteReader();
+            if (!rd.Read()) throw new InvalidOperationException("Devis introuvable");
+            var numeroActuel = rd["Numero"] as string;
+
+            // --- 2) Numéro si absent (format & séquence via NumberingService)
+            string numero;
+            if (string.IsNullOrWhiteSpace(numeroActuel))
             {
-                get.CommandText = "SELECT Date FROM Devis WHERE Id=@d;";
-                Db.AddParam(get, "@d", devisId);
-                var iso = Convert.ToString(get.ExecuteScalar()) ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
-                date = DateOnly.ParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                numero = numbering.Next("DEVI", today);
+                using var cmdNum = cn.CreateCommand();
+                cmdNum.Transaction = tr;
+                cmdNum.CommandText = "UPDATE Devis SET Numero=@n, Etat='Envoye', Date=@d WHERE Id=@id;";
+                Db.AddParam(cmdNum, "@n", numero);
+                Db.AddParam(cmdNum, "@d", DateTime.Now);
+                Db.AddParam(cmdNum, "@id", devisId);
+                cmdNum.ExecuteNonQuery();
+            }
+            else
+            {
+                numero = numeroActuel!;
+                using var cmdEtat = cn.CreateCommand();
+                cmdEtat.Transaction = tr;
+                cmdEtat.CommandText = "UPDATE Devis SET Etat='Envoye' WHERE Id=@id;";
+                Db.AddParam(cmdEtat, "@id", devisId);
+                cmdEtat.ExecuteNonQuery();
             }
 
-            // numéro
-            var numero = numbering.Next("DEVI", date);
-
-            // pose
-            using (var cmd = cn.CreateCommand())
+            // --- 3) Relire les infos client & lignes pour construire le PDF
+            string clientSociete = rd["ClientSociete"] as string ?? "";
+            string clientNomPrenom = rd["ClientNomPrenom"] as string ?? "";
+            decimal remiseEuro = 0m;
             {
-                cmd.CommandText = "UPDATE Devis SET Numero=@n, Etat='Envoye' WHERE Id=@d;";
-                Db.AddParam(cmd, "@n", numero);
-                Db.AddParam(cmd, "@d", devisId);
-                cmd.ExecuteNonQuery();
+                using var cmdR = cn.CreateCommand();
+                cmdR.Transaction = tr;
+                cmdR.CommandText = "SELECT RemiseGlobale FROM Devis WHERE Id=@id;";
+                Db.AddParam(cmdR, "@id", devisId);
+                var o = cmdR.ExecuteScalar();
+                remiseEuro = (o == null || o is DBNull) ? 0m : Convert.ToDecimal(o, CultureInfo.InvariantCulture);
+            }
+            string clientAddr1 = rd["ClientAdresseL1"] as string ?? "";
+            string clientCP = rd["ClientCodePostal"] as string ?? "";
+            string clientVille = rd["ClientVille"] as string ?? "";
+            rd.Close();
+
+            // --- 3b) Lire le compte bancaire éventuellement attaché au devis
+            string? bankHolder = null, bankName = null, iban = null, bic = null;
+
+            int? bankId = null;
+            using (var cmdB = cn.CreateCommand())
+            {
+                cmdB.Transaction = tr;
+                cmdB.CommandText = "SELECT BankAccountId FROM Devis WHERE Id=@id;";
+                Db.AddParam(cmdB, "@id", devisId);
+                var o = cmdB.ExecuteScalar();
+                if (o != null && o != DBNull.Value)
+                    bankId = Convert.ToInt32(o, CultureInfo.InvariantCulture);
             }
 
-            // emplacement PDF final (génération faite dans le module PDF à venir)
-            var docsDir = Path.Combine(Paths.DataDir, "Docs", "Devis"); // portable ??
-            Directory.CreateDirectory(docsDir);
-            var final = Path.Combine(docsDir, $"{numero}.pdf");
-            if (!File.Exists(final)) File.WriteAllBytes(final, Array.Empty<byte>()); // placeholder vide
+            if (bankId.HasValue)
+            {
+                using var cmdInfo = cn.CreateCommand();
+                cmdInfo.Transaction = tr;
+                cmdInfo.CommandText = @"
+        SELECT Holder, BankName, Iban, Bic
+        FROM BankAccounts
+        WHERE Id=@bid;";
+                Db.AddParam(cmdInfo, "@bid", bankId.Value);
+                using var rb = cmdInfo.ExecuteReader();
+                if (rb.Read())
+                {
+                    bankHolder = rb["Holder"] as string;
+                    bankName = rb["BankName"] as string;
+                    iban = rb["Iban"] as string;
+                    bic = rb["Bic"] as string;
+                }
+            }
 
-            return final;
+            // Lignes
+            var lines = new List<(string designation, double qty, double pu)>();
+            using (var cmdL = cn.CreateCommand())
+            {
+                cmdL.Transaction = tr;
+                cmdL.CommandText = @"
+            SELECT Designation, Qty, PU
+            FROM DevisLignes
+            WHERE DevisId = @id
+            ORDER BY Id;";
+                Db.AddParam(cmdL, "@id", devisId);
+                using var rl = cmdL.ExecuteReader();
+                while (rl.Read())
+                {
+                    var d = rl["Designation"] as string ?? "";
+                    var q = Convert.ToDouble(rl["Qty"], System.Globalization.CultureInfo.InvariantCulture);
+                    var p = Convert.ToDouble(rl["PU"], System.Globalization.CultureInfo.InvariantCulture);
+                    lines.Add((d, q, p));
+                }
+            }
+
+            // Bloc destinataire : Société si présente, sinon Nom Prénom
+            var clientName = !string.IsNullOrWhiteSpace(clientSociete)
+                ? clientSociete
+                : (!string.IsNullOrWhiteSpace(clientNomPrenom) ? clientNomPrenom : "Destinataire non renseigné");
+
+            var clientAddress = string.Join("\n", new[]
+            {
+                clientAddr1,
+                $"{clientCP} {clientVille}".Trim()
+            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            // --- 4) Dossier et chemin de sortie
+            var outDir = System.IO.Path.Combine(Paths.DataDir, "Devis"); // portable OK
+            System.IO.Directory.CreateDirectory(outDir);
+            var outfile = System.IO.Path.Combine(outDir, $"{numero}.pdf");
+
+            // --- 5) Génération PDF (v1 micro — mention 293B auto côté modèle)
+            // InvoicePdf.RenderSimpleInvoice(outfile, number, clientName, clientAddress, lines, showMention293B)
+            // cf. InvoicePdf.cs
+            InvoicePdf.RenderSimpleInvoice(
+                outputPath: outfile,
+                numero: numero,
+                clientName: clientName,
+                clientAddr: clientAddress,
+                lines: lines,
+                showMention293B: true,
+                discountEuro: remiseEuro,     // ← NOUVEAU : remise €
+                bankHolder: bankHolder,     // ← rempli au point 2 (compte bancaire)
+                bankName: bankName,
+                iban: iban,
+                bic: bic
+            );
+
+            tr.Commit();
+
+            return outfile;
         }
 
 

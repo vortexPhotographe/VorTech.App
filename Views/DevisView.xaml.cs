@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -379,8 +380,8 @@ namespace VorTech.App.Views
 
         private void BtnEmit_Click(object sender, RoutedEventArgs e)
         {
-            if (_current == null) return;
-            EnsureCurrentId();                                  // crée un enregistrement s'il n'existe pas encore
+            EnsureCurrentId();                  // d'abord on s'assure d'avoir un Id
+            if (_current == null) return;       // ensuite on vérifie
 
             try
             {
@@ -394,6 +395,7 @@ namespace VorTech.App.Views
 
                 MessageBox.Show($"Devis émis : {_current?.Numero}\nPDF : {pdfPath}", "OK",
                     MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Diagnostics.Process.Start(new ProcessStartInfo(pdfPath) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
