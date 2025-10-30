@@ -1,32 +1,47 @@
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.DocumentObjectModel.Fields;
+using MigraDoc.DocumentObjectModel.Tables;
+using MigraDoc.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using MigraDoc.DocumentObjectModel;
-using MigraDoc.DocumentObjectModel.Tables;
-using MigraDoc.Rendering;
-using VorTech.App.Models;
-using VorTech.App.Services;
+using System.Runtime.Versioning;
+using VorTech.App;          // Paths
+using VorTech.App.Services; // ConfigService, SettingsCatalogService
 
 namespace VorTech.App
 {
     public static class InvoicePdf
     {
+        // Surcharge existante (compat)
         public static void RenderSimpleInvoice(
             string outputPath,
             string numero,
             string clientName,
             string clientAddr,
             IReadOnlyList<(string designation, double qty, double pu)> lines,
-            bool showMention293B)
+            bool showMention293B,
+            string? clientPhone = null,   // ← AJOUT
+            string? clientEmail = null    // ← AJOUT
+        )
         {
             RenderSimpleInvoice(
                 outputPath, numero, clientName, clientAddr, lines, showMention293B,
                 discountEuro: 0m,
-                bankHolder: null, bankName: null, iban: null, bic: null
+                bankHolder: null, bankName: null, iban: null, bic: null,
+                paymentTermsText: null,
+                paymentPlanJson: null,
+                noteTop: null,
+                noteBottom: null,
+                devisDateText: null,
+                clientPhone: clientPhone,
+                clientEmail: clientEmail
             );
         }
 
+        /// <summary>Rendu PDF conforme à la maquette 1→11.</summary>
+        [SupportedOSPlatform("windows")]
         public static void RenderSimpleInvoice(
             string outputPath,
             string numero,
@@ -38,173 +53,419 @@ namespace VorTech.App
             string? bankHolder,
             string? bankName,
             string? iban,
-            string? bic)
+            string? bic,
+            string? paymentTermsText,
+            string? paymentPlanJson,
+            string? noteTop = null,
+            string? noteBottom = null,
+            string? devisDateText = null,
+            string? clientPhone = null,
+            string? clientEmail = null
+        )
         {
             var cfg = ConfigService.Load();
+            var company = new SettingsCatalogService().GetCompanyProfile();
             var culture = CultureInfo.GetCultureInfo("fr-FR");
+            Color Accent = Color.FromRgb(255, 0, 0); // #FF0000
 
             var doc = new Document();
             doc.Info.Title = $"Devis {numero}";
 
-            // --- Styles de base
-            var style = doc.Styles["Normal"] ?? doc.Styles.AddStyle("Normal", "Normal");
-            style.Font.Name = "Segoe UI";
-            style.Font.Size = 10;
+            // Styles
+            Style normal = doc.Styles["Normal"]!;
+            normal.Font.Name = "Arial";
+            normal.Font.Size = 11;
 
-            // --- Section & marges
+            var sTitle = doc.Styles.AddStyle("H-Title", "Normal");
+            sTitle.Font.Size = 12;
+            sTitle.Font.Bold = true;
+
+            var sSmall = doc.Styles.AddStyle("Small", "Normal");
+            sSmall.Font.Size = 10;
+
+            var sSmallItalic = doc.Styles.AddStyle("SmallItalic", "Small");
+            sSmallItalic.Font.Italic = true;
+
+            // Page
             var sec = doc.AddSection();
-            sec.PageSetup.LeftMargin = Unit.FromCentimeter(1.8);
-            sec.PageSetup.RightMargin = Unit.FromCentimeter(1.8);
-            sec.PageSetup.TopMargin = Unit.FromCentimeter(1.6);
-            sec.PageSetup.BottomMargin = Unit.FromCentimeter(1.6);
+            sec.PageSetup.LeftMargin = Unit.FromMillimeter(5);
+            sec.PageSetup.RightMargin = Unit.FromMillimeter(5);
+            sec.PageSetup.TopMargin = Unit.FromMillimeter(5);
+            sec.PageSetup.BottomMargin = Unit.FromMillimeter(5);
 
-            // --- ENTÊTE (logo + nom commercial depuis ConfigService)
-            var header = sec.Headers.Primary;
-            var headerTbl = header.AddTable();
-            headerTbl.AddColumn(Unit.FromCentimeter(9));
-            headerTbl.AddColumn(Unit.FromCentimeter(8));
-            var hr = headerTbl.AddRow();
+            /* Page X sur Y (haut droite)
+            var pageHdr = sec.Headers.Primary.AddParagraph();
+            pageHdr.Format.Alignment = ParagraphAlignment.Right;
+            pageHdr.AddText("Page ");
+            pageHdr.AddPageField();
+            pageHdr.AddText(" sur ");
+            pageHdr.AddNumPagesField();
+            pageHdr.Format.SpaceAfter = Unit.FromMillimeter(1.5);*/
 
-            try
+            // ================== EN-TÊTE: grille 2 x 2 ==================
+            // colonnes: gauche 90mm / droite 105mm
+            var grid = sec.AddTable();
+            grid.Borders.Visible = false;
+            grid.AddColumn(Unit.FromMillimeter(90));
+            grid.AddColumn(Unit.FromMillimeter(105));
+            grid.AddRow(); // Row 0: société (gauche) + logo (droite)
+            grid.AddRow(); // Row 1: client (gauche) + panneau devis (droite)
+
+            // (1) Société (gauche, row 0)
             {
-                var logoPath = Path.Combine(Paths.AssetsDir, "Brand", "logo.png");
-                if (File.Exists(logoPath))
+                var cell = grid.Rows[0].Cells[0];
+                var p = cell.AddParagraph();
+                p.Format.Font.Size = 14; // plus grand, pour tomber au niveau du logo
+                void L(string? t) { if (!string.IsNullOrWhiteSpace(t)) { p.AddText(t); p.AddLineBreak(); } }
+                L(company.NomCommercial ?? cfg.BusinessName ?? "");
+                L(company.Adresse1);
+                L(company.Adresse2);
+                var cpVille = $"{company.CodePostal} {company.Ville}".Trim();
+                L(!string.IsNullOrWhiteSpace(company.Pays) ? $"{cpVille} - {company.Pays}" : cpVille);
+                L(company.Email);
+                if (!string.IsNullOrWhiteSpace(company.SiteWeb)) p.AddText(company.SiteWeb);
+            }
+
+            // (2) Logo (droite, row 0)
+            {
+                var cell = grid.Rows[0].Cells[1];
+                try
                 {
-                    var img = hr.Cells[0].AddImage(logoPath);
-                    img.LockAspectRatio = true;
-                    img.Width = Unit.FromCentimeter(4.0);
+                    var logoPath = Path.Combine(Paths.AssetsDir, "Brand", "logo.png");
+                    if (File.Exists(logoPath))
+                    {
+                        var img = cell.AddImage(logoPath);
+                        img.LockAspectRatio = true;
+                        img.Width = Unit.FromMillimeter(98);
+                    }
                 }
+                catch { /* ignore */ }
             }
-            catch { /* ignore image bloquée */ }
 
-            var companyName = string.IsNullOrWhiteSpace(cfg.BusinessName) ? "Votre entreprise" : cfg.BusinessName;
-            var company = hr.Cells[1].AddParagraph(companyName);
-            company.Format.Alignment = ParagraphAlignment.Right;
-            company.Format.Font.Size = 12;
-            company.Format.Font.Bold = true;
+            // ======= LIGNE client + panneau devis, même hauteur =======
+            var hdrRow = sec.AddTable();
+            hdrRow.Borders.Visible = false;
+            hdrRow.AddColumn(Unit.FromMillimeter(90));  // client (gauche)
+            hdrRow.AddColumn(Unit.FromMillimeter(105)); // panneau devis (droite)
+            var hr = hdrRow.AddRow();
 
-            var comp2 = hr.Cells[1].AddParagraph();
-            comp2.Format.Alignment = ParagraphAlignment.Right;
-            var compLines = new List<string>();
-            if (!string.IsNullOrWhiteSpace(cfg.Siret)) compLines.Add($"SIREN/SIRET : {cfg.Siret}");
-            // On n'affiche pas ici IBAN/BIC globaux si on a un compte bancaire par devis (géré en pied)
-            comp2.AddText(string.Join("   •   ", compLines));
-            comp2.Format.Font.Size = 8.5;
-
-            // --- Titre
-            var title = sec.AddParagraph("DEVIS");
-            title.Format.Font.Size = 15;
-            title.Format.Font.Bold = true;
-            title.Format.SpaceBefore = Unit.FromPoint(6);
-            title.Format.SpaceAfter = Unit.FromPoint(10);
-
-            // --- Bandeau N° + Date + Client
-            var top = sec.AddTable();
-            top.Borders.Width = 0;
-            top.AddColumn(Unit.FromCentimeter(9));
-            top.AddColumn(Unit.FromCentimeter(8));
-            var tr = top.AddRow();
-
-            var left = tr.Cells[0].AddParagraph($"N° {numero}\nDate : {DateTime.Today:dd/MM/yyyy}");
-            left.Format.SpaceAfter = Unit.FromPoint(6);
-
-            var right = tr.Cells[1].AddParagraph($"Destinataire :\n{clientName}\n{clientAddr}");
-            right.Format.Alignment = ParagraphAlignment.Right;
-
-            // --- Tableau lignes
-            var tbl = sec.AddTable();
-            tbl.Borders.Width = 0.5;
-            tbl.Rows.LeftIndent = 0;
-
-            tbl.AddColumn(Unit.FromCentimeter(11)); // désignation
-            tbl.AddColumn(Unit.FromCentimeter(2));  // Qté
-            tbl.AddColumn(Unit.FromCentimeter(3));  // PU HT
-            tbl.AddColumn(Unit.FromCentimeter(2));  // Montant
-
-            var headerRow = tbl.AddRow();
-            headerRow.Shading.Color = Colors.LightGray;
-            headerRow.HeadingFormat = true;
-            headerRow.Format.Font.Bold = true;
-            headerRow.Cells[0].AddParagraph("Désignation");
-            headerRow.Cells[1].AddParagraph("Qté");
-            headerRow.Cells[2].AddParagraph("PU");
-            headerRow.Cells[3].AddParagraph("Montant");
-
-            decimal sum = 0m;
-            foreach (var line in lines)
+            // (4) CLIENT (gauche, même hauteur que (3)) — 14pt, 1ʳᵉ ligne en gras
             {
-                var r = tbl.AddRow();
-                r.Cells[0].AddParagraph(line.designation);
-                r.Cells[1].AddParagraph(line.qty.ToString("0.##", culture)).Format.Alignment = ParagraphAlignment.Right;
-                r.Cells[2].AddParagraph(line.pu.ToString("0.00 €", culture)).Format.Alignment = ParagraphAlignment.Right;
-                var mt = Convert.ToDecimal(line.qty * line.pu, culture);
-                sum += mt;
-                r.Cells[3].AddParagraph(mt.ToString("0.00 €", culture)).Format.Alignment = ParagraphAlignment.Right;
+                var cell = hr.Cells[0];
+
+                var t = cell.AddParagraph("Client");
+                t.Style = "H-Title";
+                t.Format.SpaceAfter = Unit.FromMillimeter(2);
+
+                var p = cell.AddParagraph();
+                p.Format.SpaceAfter = Unit.FromMillimeter(3);
+
+                // lignes de base (Société/Nom, Adresse, CP Ville…)
+                var full = ((clientName ?? "") + (string.IsNullOrWhiteSpace(clientAddr) ? "" : "\n" + clientAddr));
+
+                // -> on passe en List<string> pour pouvoir .Add(...)
+                var linesClient = new List<string>(
+                    full.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                );
+
+                // Tél / Email (si fournis) — nécessite que ta méthode ait les params clientPhone/clientEmail
+                if (!string.IsNullOrWhiteSpace(clientPhone)) linesClient.Add(clientPhone.Trim());
+                if (!string.IsNullOrWhiteSpace(clientEmail)) linesClient.Add(clientEmail.Trim());
+
+                // rendu : 14pt, 1ʳᵉ ligne (nom/société) en gras
+                for (int i = 0; i < linesClient.Count; i++)
+                {
+                    var run = p.AddFormattedText(linesClient[i].Trim());
+                    run.Font.Size = 12;
+                    run.Bold = (i == 0);
+                    p.AddLineBreak();
+                }
+
             }
 
-            // --- Ligne Remise (si > 0)
-            if (discountEuro > 0m)
+            // (3) PANNEAU "DEVIS" (cellule droite) — **sans table imbriquée**,
+            // on utilise 2 sous-paragraphes + une mini-table *créée via Elements* (OK avec MigraDoc).
             {
-                var rdw = tbl.AddRow();
-                rdw.Cells[0].MergeRight = 2;
-                rdw.Cells[0].AddParagraph("Remise");
-                var pRem = rdw.Cells[3].AddParagraph(("-" + discountEuro.ToString("0.00 €", culture)));
-                rdw.Cells[3].Format.Alignment = ParagraphAlignment.Right;
+                var cell = hr.Cells[1];
+
+                // Bandeau rouge "Devis"
+                var band = cell.Elements.AddTable();
+                band.Borders.Visible = false;
+                band.AddColumn(Unit.FromMillimeter(105));
+                var br = band.AddRow();
+                br.Cells[0].Shading.Color = Accent;
+                var pBand = br.Cells[0].AddParagraph("Devis");
+                pBand.Format.Font.Color = Colors.White;
+                pBand.Format.Font.Bold = true;
+                pBand.Format.Font.Size = 11;
+                pBand.Format.SpaceBefore = Unit.FromMillimeter(1.2);
+                pBand.Format.SpaceAfter = Unit.FromMillimeter(1.2);
+
+                // Tableau infos (libellé / valeur) — via Elements.AddTable()
+                var info = cell.Elements.AddTable();
+                info.Borders.Visible = false;
+                info.AddColumn(Unit.FromMillimeter(55)); // libellé
+                info.AddColumn(Unit.FromMillimeter(50)); // valeur (assez large pour tenir sur 1 ligne)
+                void AddInfo(string lib, string? val, bool rightAlign = true)
+                {
+                    var row = info.AddRow();
+                    var lp = row.Cells[0].AddParagraph(lib); lp.Format.Font.Size = 11;
+                    var rp = row.Cells[1].AddParagraph(val ?? "");
+                    rp.Format.Font.Size = 11;
+                    rp.Format.Alignment = rightAlign ? ParagraphAlignment.Right : ParagraphAlignment.Left;
+                }
+
+                AddInfo("Numéro de devis", numero);
+                AddInfo("Date du devis", !string.IsNullOrWhiteSpace(devisDateText) ? devisDateText : DateTime.Now.ToString("dd/MM/yyyy"));
+                AddInfo("Devis valable 30 jours", "", rightAlign: false);
+
+                // “Conditions de paiement” sur 1 ligne (espaces insécables)
+                var payText = (paymentTermsText ?? "—").Replace(" ", "\u00A0");
+                AddInfo("Conditions de paiement", payText);
+
+                // Barre rouge “Total à payer”
+                decimal totalPanel = 0m;
+                foreach (var (designation, qty, pu) in lines) totalPanel += (decimal)qty * (decimal)pu;
+                if (discountEuro > 0) totalPanel = Math.Max(0m, totalPanel - discountEuro);
+
+                var totalBar = cell.Elements.AddTable();
+                totalBar.Borders.Visible = false;
+                totalBar.AddColumn(Unit.FromMillimeter(65)); // libellé
+                totalBar.AddColumn(Unit.FromMillimeter(40)); // montant
+                var trb = totalBar.AddRow();
+                trb.Cells[0].Shading.Color = Accent;
+                trb.Cells[1].Shading.Color = Accent;
+
+                var lpb = trb.Cells[0].AddParagraph("Total à payer");
+                lpb.Format.Font.Color = Colors.White; lpb.Format.Font.Bold = true; lpb.Format.Font.Size = 11;
+
+                var rpb = trb.Cells[1].AddParagraph(totalPanel.ToString("N2", culture) + " €");
+                rpb.Format.Font.Color = Colors.White; rpb.Format.Font.Bold = true; rpb.Format.Font.Size = 11; rpb.Format.Alignment = ParagraphAlignment.Right;
             }
 
-            // --- Total NET = sum - remise (min 0)
-            var totalNet = sum - discountEuro;
-            if (totalNet < 0m) totalNet = 0m;
-
-            var rt = tbl.AddRow();
-            rt.Cells[0].MergeRight = 2;
-            rt.Cells[0].AddParagraph("Total");
-            var totalCell = rt.Cells[3].AddParagraph(totalNet.ToString("0.00 €", culture));
-            totalCell.Format.Font.Bold = true;
-            rt.Cells[3].Format.Alignment = ParagraphAlignment.Right;
-
-            // --- Mention micro 293B
-            if (showMention293B || cfg.IsMicro)
+            // (5) Texte libre haut (juste sous la ligne client/panneau)
+            if (!string.IsNullOrWhiteSpace(noteTop))
             {
-                var secToUse = doc.Sections.Count > 0 ? doc.LastSection : doc.AddSection();
-                var p293b = secToUse.AddParagraph("TVA non applicable, art. 293 B du CGI");
-                p293b.Format.Font.Size = 9;
-                p293b.Format.SpaceBefore = Unit.FromPoint(6);
+                var p = sec.AddParagraph(noteTop);
+                p.Format.SpaceBefore = Unit.FromMillimeter(2);
+                p.Format.SpaceAfter = Unit.FromMillimeter(4);
             }
 
-            // --- Pied de page : coordonnées bancaires du devis si fournies, sinon fallback global
-            var ftr = sec.Footers.Primary;
-            var footerParts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(bankHolder)) footerParts.Add($"Titulaire : {bankHolder}");
-            if (!string.IsNullOrWhiteSpace(bankName)) footerParts.Add($"Banque : {bankName}");
-            if (!string.IsNullOrWhiteSpace(iban)) footerParts.Add($"IBAN : {iban}");
-            if (!string.IsNullOrWhiteSpace(bic)) footerParts.Add($"BIC : {bic}");
-
-            if (footerParts.Count == 0)
+            // -- espace entre panneau devis et tableau articles (~ 18 mm ≈ 68 px)
             {
-                // fallback global (comme avant)
-                if (!string.IsNullOrWhiteSpace(cfg.Siret)) footerParts.Add($"SIRET : {cfg.Siret}");
-                if (!string.IsNullOrWhiteSpace(cfg.Iban)) footerParts.Add($"IBAN : {cfg.Iban}");
-                if (!string.IsNullOrWhiteSpace(cfg.Bic)) footerParts.Add($"BIC : {cfg.Bic}");
+                var sep = sec.AddParagraph();
+                sep.Format.SpaceBefore = Unit.FromMillimeter(18);
+                sep.AddText(" "); // paragraphe vide porteur d'espacement
             }
 
-            if (footerParts.Count > 0)
+            // ================== (6) TABLEAU DES ARTICLES ==================
             {
-                var pf = ftr.AddParagraph(string.Join("   •   ", footerParts));
-                pf.Format.Alignment = ParagraphAlignment.Center;
-                pf.Format.Font.Size = 8.5;
-                pf.Format.SpaceBefore = Unit.FromPoint(8);
+                var tbl = sec.AddTable();
+                tbl.Borders.Width = 0.25;
+                tbl.Borders.Color = Colors.Gray;      // lignes internes gris
+                tbl.Borders.Left.Width = 0;          // pas de trait à gauche
+                tbl.Borders.Right.Width = 0;          // pas de trait à droite
+
+                // Colonnes (total 200 mm)
+                tbl.AddColumn(Unit.FromMillimeter(109.3)); // Description
+                tbl.AddColumn(Unit.FromMillimeter(18.6)); // Quantité
+                tbl.AddColumn(Unit.FromMillimeter(32.4)); // Prix
+                tbl.AddColumn(Unit.FromMillimeter(39.7)); // Montant
+
+                // EN-TÊTE ROUGE (texte blanc gras)
+                var hdr = tbl.AddRow();
+                hdr.HeadingFormat = true;
+                hdr.Shading.Color = Accent;
+                hdr.Cells[0].AddParagraph("Description");
+                var pQtyHdr = hdr.Cells[1].AddParagraph("Quantité");   // Paragraph
+                pQtyHdr.Format.Alignment = ParagraphAlignment.Center;
+                hdr.Cells[2].AddParagraph("Prix");
+                hdr.Cells[3].AddParagraph("Montant");
+                for (int i = 0; i < hdr.Cells.Count; i++)
+                {
+                    Cell c = hdr.Cells[i]!;
+                    c.Format.Font.Color = Colors.White;
+                    c.Format.Font.Bold = true;
+                }
+                hdr.Borders.Bottom.Color = Accent;
+                hdr.Borders.Bottom.Width = 1;
+
+
+                // Lignes
+                decimal total = 0m;
+                foreach (var (designation, qty, pu) in lines)
+                {
+                    var row = tbl.AddRow();
+                    row.Cells[0].AddParagraph(designation ?? "");
+                    row.Cells[1].AddParagraph(qty.ToString("0.##", culture)).Format.Alignment = ParagraphAlignment.Center; // Quantité centrée
+                    row.Cells[2].AddParagraph(((decimal)pu).ToString("N2", culture) + " €").Format.Alignment = ParagraphAlignment.Right;
+                    var montant = (decimal)qty * (decimal)pu;
+                    total += montant;
+                    row.Cells[3].AddParagraph(montant.ToString("N2", culture) + " €").Format.Alignment = ParagraphAlignment.Right;
+                }
+
+                // Remise ?
+                if (discountEuro > 0m)
+                {
+                    var rr = tbl.AddRow();
+                    // Col 0 (Description) vide
+                    rr.Cells[0].AddParagraph(" ");
+                    // Col 1 (Quantité) → "REMISE"
+                    var pRem = rr.Cells[1].AddParagraph("REMISE");
+                    pRem.Format.Alignment = ParagraphAlignment.Center;
+                    // Col 2 (Prix) vide
+                    rr.Cells[2].AddParagraph(" ");
+                    // Col 3 (Montant) → valeur à droite
+                    rr.Cells[3].AddParagraph("- " + discountEuro.ToString("N2", culture) + " €")
+                               .Format.Alignment = ParagraphAlignment.Right;
+                    rr.Borders.Bottom.Color = Accent;
+                    rr.Borders.Bottom.Width = 1;
+                    total -= discountEuro;
+                    if (total < 0) total = 0;
+                }
+
+
+                // Séparateur rouge avant Total (inchangé)
+                var sep = tbl.AddRow();
+                sep.Borders.Top.Color = Accent;
+                sep.Borders.Top.Width = 1;
+                sep.Cells[0].MergeRight = 3;
+                sep.Cells[0].AddParagraph(" ");
+
+                // Total HT (libellé à gauche comme avant)
+                var tot = tbl.AddRow();
+
+                // Trait de séparation (rouge) au-dessus
+                tot.Borders.Top.Color = Accent;
+                tot.Borders.Top.Width = 1;
+
+                // Col 0 vide
+                tot.Cells[0].AddParagraph(" ");
+
+                // Col 1 → "Total HT"
+                var pTotLbl = tot.Cells[1].AddParagraph("Total HT");
+                pTotLbl.Format.Alignment = ParagraphAlignment.Center;
+
+                // Col 2 vide
+                tot.Cells[2].AddParagraph(" ");
+
+                // Col 3 → montant à droite en gras
+                var pTotVal = tot.Cells[3].AddParagraph(total.ToString("N2", culture) + " €");
+                pTotVal.Format.Alignment = ParagraphAlignment.Right;
+                pTotVal.Format.Font.Bold = true;
             }
 
-            // --- Rendu
-            var renderer = new PdfDocumentRenderer();
-            renderer.Document = doc;
-            renderer.RenderDocument();
+            // (7) Mention micro
+            if (showMention293B)
+            {
+                var p = sec.AddParagraph("TVA non applicable, article 293B du code général des impôts.");
+                p.Style = "SmallItalic";
+                p.Format.SpaceBefore = Unit.FromMillimeter(3);
+            }
 
+            // (8) Texte libre bas (gauche)
+            if (!string.IsNullOrWhiteSpace(noteBottom))
+            {
+                var p = sec.AddParagraph(noteBottom);
+                p.Style = "Small";
+                p.Format.SpaceBefore = Unit.FromMillimeter(2);
+                p.Format.SpaceAfter = Unit.FromMillimeter(2);
+            }
+
+            // (9) Signature — cadre 74mm x 15.9mm (droite), bien visible
+            {
+                var sig = sec.AddTable();
+                sig.Borders.Visible = false;
+                sig.AddColumn(Unit.FromMillimeter(120)); // texte à gauche
+                sig.AddColumn(Unit.FromMillimeter(80));  // cadre à droite
+
+                var r1 = sig.AddRow();
+                r1.Cells[0].AddParagraph(" ");
+                var title = r1.Cells[1].AddParagraph("Cachet ou signature date et mention\n'Bon pour accord'");
+                title.Style = "Small";
+                title.Format.Alignment = ParagraphAlignment.Center;
+                title.Format.SpaceAfter = Unit.FromMillimeter(3);
+
+                var r2 = sig.AddRow();
+                r2.Height = Unit.FromMillimeter(30.9);
+                r2.HeightRule = RowHeightRule.Exactly;
+                r2.Cells[0].AddParagraph(" ");
+
+                var sigCell = r2.Cells[1];
+                sigCell.Borders.Color = Colors.Black;
+                sigCell.Borders.Left.Width = 1.25;
+                sigCell.Borders.Top.Width = 1.25;
+                sigCell.Borders.Right.Width = 1.25;
+                sigCell.Borders.Bottom.Width = 1.25;
+                sigCell.Shading.Color = Colors.White;     // masque d’éventuels filets en dessous
+                sigCell.AddParagraph("\u00A0");           // petit contenu non-vide pour forcer le dessin
+            }
+
+            // (10) En Options — rien
+
+
+            // Helper pied : ajoute "Label : valeur" en centrant et en insérant "  -  " entre items
+            void addCenteredPair(Paragraph p, string label, string? value, ref bool first)
+            {
+                if (string.IsNullOrWhiteSpace(value)) return;
+                if (!first) p.AddText("   -   ");
+                p.AddFormattedText(label + " : ", TextFormat.Bold);
+                p.AddText(value.Trim());
+                first = false;
+            }
+
+            // (11) Pied de page — centré, gris foncé, séparateurs "  -  "
+            {
+                var dark = Colors.DimGray;
+
+                // L1 — centrée, gras : nom + adresse complète
+                var foot1 = sec.Footers.Primary.AddParagraph();
+                foot1.Format.Alignment = ParagraphAlignment.Center;
+                foot1.Format.Font.Size = 10;
+                foot1.Format.Font.Color = dark;
+                foot1.Format.Font.Bold = true;
+                var a1 = (company.NomCommercial ?? cfg.BusinessName ?? "").Trim();
+                var a2 = $"{company.Adresse1} {company.Adresse2}".Trim();
+                var a3 = $"{company.CodePostal} {company.Ville} {company.Pays}".Trim();
+                foot1.AddText($"{a1} {a2} {a3}".Replace("  ", " ").Trim());
+
+                // L2
+                var p2 = sec.Footers.Primary.AddParagraph();
+                p2.Format.Alignment = ParagraphAlignment.Center;
+                p2.Format.Font.Size = 10;
+                p2.Format.Font.Color = Colors.DimGray;
+                bool f2 = true;
+                addCenteredPair(p2, "N° SIRET", company.Siret, ref f2);
+                addCenteredPair(p2, "Tél", company.Telephone, ref f2);
+                addCenteredPair(p2, "Email", company.Email, ref f2);
+
+                // L3
+                var p3 = sec.Footers.Primary.AddParagraph();
+                p3.Format.Alignment = ParagraphAlignment.Center;
+                p3.Format.Font.Size = 10;
+                p3.Format.Font.Color = Colors.DimGray;
+                bool f3 = true;
+                addCenteredPair(p3, "Titulaire du compte", bankHolder, ref f3);
+                addCenteredPair(p3, "Banque", bankName, ref f3);
+
+                // L4
+                var p4 = sec.Footers.Primary.AddParagraph();
+                p4.Format.Alignment = ParagraphAlignment.Center;
+                p4.Format.Font.Size = 10;
+                p4.Format.Font.Color = Colors.DimGray;
+                bool f4 = true;
+                addCenteredPair(p4, "IBAN", iban, ref f4);
+                addCenteredPair(p4, "BIC", bic, ref f4);
+            }
+
+            // Render
             var outDir = Path.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(outDir))
                 Directory.CreateDirectory(outDir);
 
+            var renderer = new PdfDocumentRenderer();
+            renderer.Document = doc;
+            renderer.RenderDocument();
             renderer.PdfDocument.Save(outputPath);
         }
     }

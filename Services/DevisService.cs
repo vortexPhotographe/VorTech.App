@@ -9,32 +9,6 @@ using static QRCoder.PayloadGenerator.SwissQrCode;
 
 namespace VorTech.App.Services
 {
-    public interface IDevisService
-    {
-        int CreateDraft(int? clientId, Client? snapshot = null);
-        void SetNotes(int id, string? haut, string? bas);
-        void SetGlobalDiscount(int id, decimal remise);
-        int AddLine(int devisId, string designation, decimal qty, decimal pu, int? articleId = null, int? varianteId = null, string? imagePath = null);
-        void UpdateLine(int ligneId, string designation, decimal qty, decimal pu);
-        void DeleteLine(int ligneId);
-        void RecalcTotals(int devisId);
-        void AttachAnnexPdf(int devisId, string relPath, int ordre);
-        void AttachAnnexPlanche(int devisId, int ordre, object? config = null);
-        void ReorderAnnexe(int annexeId, int newOrdre);
-        string Emit(int devisId, INumberingService numbering);
-        void MarkTransformed(int devisId);
-        void SetClientSnapshot(int devisId, int? clientId, Client? c);
-        void UpdateClientFields(int devisId, string? societe, string? nomPrenom,
-                                string? adresse, string? cp, string? ville,
-                                string? email, string? telephone);
-        void SoftDelete(int id);
-        void SetBankAccount(int devisId, int? bankAccountId);
-        List<Devis> GetAll(string? search = null);
-        List<DevisLigne> GetLines(int devisId);
-        List<DevisAnnexe> GetAnnexes(int devisId);
-        Devis? GetById(int id);
-    }
-
     public class DevisService : IDevisService
     {
         public DevisService() => EnsureSchema();
@@ -109,6 +83,31 @@ CREATE INDEX IF NOT EXISTS IX_DevisAnnexes_Devis ON DevisAnnexes(DevisId);";
                 add2.ExecuteNonQuery();
             }
             catch { /* colonne déjà là */ }
+
+            try
+            {
+                using var add3 = cn.CreateCommand();
+                add3.CommandText = "ALTER TABLE Devis ADD COLUMN PaymentTermsId INTEGER NULL;";
+                add3.ExecuteNonQuery();
+            }
+            catch { /* déjà là */ }
+
+            try
+            {
+                using var add4 = cn.CreateCommand();
+                add4.CommandText = "ALTER TABLE Devis ADD COLUMN PaymentTermsText TEXT NULL;";
+                add4.ExecuteNonQuery();
+            }
+            catch { /* déjà là */ }
+
+            try
+            {
+                using var add5 = cn.CreateCommand();
+                add5.CommandText = "ALTER TABLE Devis ADD COLUMN PaymentPlanJson TEXT NULL;";
+                add5.ExecuteNonQuery();
+            }
+            catch { /* déjà là */ }
+
         }
 
         public int CreateDraft(int? clientId, Client? s = null)
@@ -348,6 +347,88 @@ WHERE Id=@id;";
             cmd.ExecuteNonQuery();
         }
 
+        // Mode de reglement 
+        public void SetPaymentTerms(int devisId, int? paymentTermsId)
+        {
+            using var cn = Db.Open();
+
+            // 1) Lire total et remise pour base de calcul
+            decimal total = 0m;
+            decimal remise = 0m;
+            using (var c1 = cn.CreateCommand())
+            {
+                c1.CommandText = "SELECT COALESCE(Total,0), COALESCE(RemiseGlobale,0) FROM Devis WHERE Id=@id;";
+                Db.AddParam(c1, "@id", devisId);
+                using var rd = c1.ExecuteReader();
+                if (rd.Read())
+                {
+                    total = Convert.ToDecimal(rd.GetValue(0), CultureInfo.InvariantCulture);
+                    remise = Convert.ToDecimal(rd.GetValue(1), CultureInfo.InvariantCulture);
+                }
+            }
+
+            // 2) Charger le modèle choisi (ou null)
+            PaymentTerm? pt = null;
+            if (paymentTermsId.HasValue)
+            {
+                var catalogs = new SettingsCatalogService();
+                pt = catalogs.GetPaymentTermById(paymentTermsId.Value);
+            }
+
+            // 3) Construire texte + plan JSON
+            string? txt = null;
+            string? planJson = null;
+
+            if (pt == null)
+            {
+                // Rien sélectionné -> vide
+            }
+            else if (string.Equals(pt.Mode, "SIMPLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(pt.SimpleDue, "AT_ORDER", StringComparison.OrdinalIgnoreCase))
+                    txt = "Paiement 100 % à la commande";
+                else
+                    txt = "Paiement 100 % à la livraison";
+            }
+            else
+            {
+                var x = pt.OrderPct ?? 50.0;
+                var y = 100.0 - x;
+
+                // Montants : basés sur TOTAL (déjà - remise)
+                var m1 = Math.Round((decimal)x / 100m * total, 2, MidpointRounding.AwayFromZero);
+                var m2 = total - m1;
+
+                txt = $"{x:0.#} % à la commande, {y:0.#} % à la livraison";
+
+                var payload = new
+                {
+                    currency = "EUR",
+                    totalBase = total,
+                    steps = new[]
+                    {
+                new { order = 1, label = "Acompte",  percent = x, amount = (double)m1, due = "A la commande" },
+                new { order = 2, label = "Solde",    percent = y, amount = (double)m2, due = "A la livraison" }
+            }
+                };
+                planJson = System.Text.Json.JsonSerializer.Serialize(payload);
+            }
+
+            // 4) Ecrire snapshot dans Devis
+            using var up = cn.CreateCommand();
+            up.CommandText = @"
+UPDATE Devis SET
+  PaymentTermsId   = @tid,
+  PaymentTermsText = @txt,
+  PaymentPlanJson  = @plan
+WHERE Id=@id;";
+            Db.AddParam(up, "@tid", (object?)paymentTermsId ?? DBNull.Value);
+            Db.AddParam(up, "@txt", (object?)txt ?? DBNull.Value);
+            Db.AddParam(up, "@plan", (object?)planJson ?? DBNull.Value);
+            Db.AddParam(up, "@id", devisId);
+            up.ExecuteNonQuery();
+        }
+
         // Compte bancaire
         public void SetBankAccount(int devisId, int? bankAccountId)
         {
@@ -358,7 +439,6 @@ WHERE Id=@id;";
             Db.AddParam(cmd, "@id", devisId);
             cmd.ExecuteNonQuery();
         }
-
 
         // DEVIS Supression
         public void SoftDelete(int id)
@@ -381,7 +461,10 @@ WHERE Id=@id;";
             using var cmdGet = cn.CreateCommand();
             cmdGet.Transaction = tr;
             cmdGet.CommandText = @"
-        SELECT Id, Numero, Date, ClientSociete, ClientNomPrenom, ClientAdresseL1, ClientCodePostal, ClientVille
+        SELECT Id, Numero, Date,
+            ClientSociete, ClientNomPrenom,
+            ClientAdresseL1, ClientCodePostal, ClientVille,
+            ClientTelephone, ClientEmail
         FROM Devis
         WHERE Id = @id;";
             Db.AddParam(cmdGet, "@id", devisId);
@@ -428,7 +511,27 @@ WHERE Id=@id;";
             string clientAddr1 = rd["ClientAdresseL1"] as string ?? "";
             string clientCP = rd["ClientCodePostal"] as string ?? "";
             string clientVille = rd["ClientVille"] as string ?? "";
+            string clientTelephone = rd["ClientTelephone"] as string ?? "";
+            string clientEmail = rd["ClientEmail"] as string ?? "";
+            var phone = clientTelephone;
+            var email = clientEmail;
             rd.Close();
+
+            // --- 3a) Lire PaymentTermsText + PaymentPlanJson
+            string? payText = null;
+            string? payPlanJson = null;
+            using (var cmdPT = cn.CreateCommand())
+            {
+                cmdPT.Transaction = tr;
+                cmdPT.CommandText = "SELECT PaymentTermsText, PaymentPlanJson FROM Devis WHERE Id=@id;";
+                Db.AddParam(cmdPT, "@id", devisId);
+                using var rp = cmdPT.ExecuteReader();
+                if (rp.Read())
+                {
+                    payText = rp["PaymentTermsText"] as string;
+                    payPlanJson = rp["PaymentPlanJson"] as string;
+                }
+            }
 
             // --- 3b) Lire le compte bancaire éventuellement attaché au devis
             string? bankHolder = null, bankName = null, iban = null, bic = null;
@@ -483,6 +586,16 @@ WHERE Id=@id;";
                     lines.Add((d, q, p));
                 }
             }
+            // lire les notes
+            string? noteTop = null, noteBottom = null;
+            using (var cmdN = cn.CreateCommand())
+            {
+                cmdN.Transaction = tr;
+                cmdN.CommandText = "SELECT NoteHaut, NoteBas FROM Devis WHERE Id=@id;";
+                Db.AddParam(cmdN, "@id", devisId);
+                using var rn = cmdN.ExecuteReader();
+                if (rn.Read()) { noteTop = rn["NoteHaut"] as string; noteBottom = rn["NoteBas"] as string; }
+            }
 
             // Bloc destinataire : Société si présente, sinon Nom Prénom
             var clientName = !string.IsNullOrWhiteSpace(clientSociete)
@@ -505,16 +618,22 @@ WHERE Id=@id;";
             // cf. InvoicePdf.cs
             InvoicePdf.RenderSimpleInvoice(
                 outputPath: outfile,
-                numero: numero,
-                clientName: clientName,
-                clientAddr: clientAddress,
-                lines: lines,
-                showMention293B: true,
-                discountEuro: remiseEuro,     // ← NOUVEAU : remise €
-                bankHolder: bankHolder,     // ← rempli au point 2 (compte bancaire)
-                bankName: bankName,
-                iban: iban,
-                bic: bic
+                    numero: numero,
+                    clientName: clientName,
+                    clientAddr: clientAddress,
+                    lines: lines,
+                    showMention293B: true,
+                    discountEuro: remiseEuro,
+                    bankHolder: bankHolder,
+                    bankName: bankName,
+                    iban: iban,
+                    bic: bic,
+                    paymentTermsText: payText,
+                    paymentPlanJson: payPlanJson,
+                    noteTop: noteTop,
+                    noteBottom: noteBottom,
+                    clientPhone: phone,
+                    clientEmail: email
             );
 
             tr.Commit();
@@ -585,7 +704,33 @@ ORDER BY Date DESC, Id DESC;";
             return list;
         }
 
+        // Corection soucis de nom de service
+        public void UpdateHeaderFields(int devisId, string? titre, string? noteHaut, string? noteBas, decimal? remiseGlobale)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE Devis
+SET
+  NoteHaut       = @h,
+  NoteBas        = @b,
+  RemiseGlobale  = COALESCE(@r, RemiseGlobale)
+WHERE Id=@id;";
+            Db.AddParam(cmd, "@h", (object?)noteHaut ?? DBNull.Value);
+            Db.AddParam(cmd, "@b", (object?)noteBas ?? DBNull.Value);
+            Db.AddParam(cmd, "@r", (object?)remiseGlobale ?? DBNull.Value);
+            Db.AddParam(cmd, "@id", devisId);
+            cmd.ExecuteNonQuery();
+
+            if (remiseGlobale.HasValue)
+                RecalcTotals(devisId);
+        }
+
         // ----- mappers -----
+        public void SetRemiseGlobale(int devisId, decimal remiseGlobale)
+            => SetGlobalDiscount(devisId, remiseGlobale);
+        public List<Devis> Search(string? q) => GetAll(q);
+        public int CreateDraft() => CreateDraft(null, null);
         private static Devis MapDevis(IDataRecord r) => new Devis
         {
             Id = Convert.ToInt32(r["Id"]),
@@ -594,23 +739,22 @@ ORDER BY Date DESC, Id DESC;";
             Etat = r["Etat"]?.ToString() ?? "Brouillon",
 
             ClientId = r["ClientId"] == DBNull.Value ? null : Convert.ToInt32(r["ClientId"]),
-
-            //  AJOUTE CES 2 LIGNES
             ClientSociete = r["ClientSociete"]?.ToString(),
             ClientNomPrenom = r["ClientNomPrenom"]?.ToString(),
-
             ClientNom = r["ClientNom"]?.ToString(),               // (historique, si tu l’utilises ailleurs)
             ClientEmail = r["ClientEmail"]?.ToString(),
             ClientTelephone = r["ClientTelephone"]?.ToString(),
             ClientAdresseL1 = r["ClientAdresseL1"]?.ToString(),
             ClientCodePostal = r["ClientCodePostal"]?.ToString(),
             ClientVille = r["ClientVille"]?.ToString(),
-
             NoteHaut = r["NoteHaut"]?.ToString(),
             NoteBas = r["NoteBas"]?.ToString(),
             RemiseGlobale = Convert.ToDecimal(r["RemiseGlobale"], CultureInfo.InvariantCulture),
             Total = Convert.ToDecimal(r["Total"], CultureInfo.InvariantCulture),
             BankAccountId = r["BankAccountId"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["BankAccountId"]),
+            PaymentTermsId = r["PaymentTermsId"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["PaymentTermsId"]),
+            PaymentTermsText = r["PaymentTermsText"]?.ToString(),
+            PaymentPlanJson = r["PaymentPlanJson"]?.ToString(),
             DeletedAt = r["DeletedAt"] == DBNull.Value ? (DateTime?)null : DateTime.Parse(r["DeletedAt"].ToString()!)
         };
 

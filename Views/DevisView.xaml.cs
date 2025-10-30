@@ -11,7 +11,7 @@ namespace VorTech.App.Views
 {
     public partial class DevisView : UserControl
     {
-        private readonly IDevisService _devis = new DevisService();
+        private readonly DevisService _devis = new DevisService();
         private readonly INumberingService _num = new NumberingService();                                                                     // par celles-ci :
         private readonly ArticleService _articles = new ArticleService();
         private readonly ClientService _clients = new ClientService();
@@ -25,6 +25,10 @@ namespace VorTech.App.Views
         {
             InitializeComponent();
             CmbBank.ItemsSource = _bank.GetAll();
+            // charger les modalités
+            var catalog = new SettingsCatalogService();
+            CmbPayment.ItemsSource = catalog.GetPaymentTerms();   // affiche Name, SelectedValue = Id
+            BindCurrent();
             LoadList(null);
             NewDraft(); // ouvre un brouillon vide par défaut
         }
@@ -79,9 +83,11 @@ namespace VorTech.App.Views
         {
             if (_current != null)
                 CmbBank.SelectedValue = _current.BankAccountId;
+            try { CmbPayment.SelectedValue = _current?.PaymentTermsId; } catch { }
             DataContext = _current;
             GridLines.ItemsSource = _lines;
             ListAnnexes.ItemsSource = _annexes;
+            CmbPayment.SelectedValue = _current?.PaymentTermsId;
             RecalcCostsUi();
 
         }
@@ -345,6 +351,17 @@ namespace VorTech.App.Views
                 _current.ClientSociete, _current.ClientNomPrenom,
                 _current.ClientAdresseL1, _current.ClientCodePostal, _current.ClientVille,
                 _current.ClientEmail, _current.ClientTelephone);
+            
+            // 2.bis) Sauver les modalités (snapshot)
+            int? paymentId = null;
+            try
+            {
+                // la Combo doit avoir SelectedValuePath="Id"
+                if (CmbPayment.SelectedValue is int x) paymentId = x;
+                else if (CmbPayment.SelectedValue is int?) paymentId = (int?)CmbPayment.SelectedValue;
+            }
+            catch { /* ignore */ }
+            _devis.SetPaymentTerms(id, paymentId);
 
             // 3) Recharger + UI
             _lines = _devis.GetLines(id);
@@ -404,6 +421,20 @@ namespace VorTech.App.Views
             }
         }
 
+        private void CmbPayment_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId();               // s'assurer qu'on a un Id en BDD
 
+            int? paymentId = null;
+            var val = CmbPayment.SelectedValue as int?;
+            if (val.HasValue) paymentId = val.Value;
+
+            _devis.SetPaymentTerms(_current.Id, paymentId);
+
+            // recharger l’objet et rebinder l’UI (texte/plan mis à jour)
+            _current = _devis.GetById(_current.Id);
+            BindCurrent();
+        }
     }
 }

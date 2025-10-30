@@ -24,6 +24,10 @@ namespace VorTech.App.Models
         public decimal RemiseGlobale { get; set; }
         public decimal Total { get; set; }
 
+        public int? PaymentTermsId { get; set; }
+        public string? PaymentTermsText { get; set; }
+        public string? PaymentPlanJson { get; set; }
+
         public DateTime? DeletedAt { get; set; }
         public int? BankAccountId { get; set; }
 

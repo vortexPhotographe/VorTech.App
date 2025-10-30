@@ -478,6 +478,20 @@
                     </StackPanel>
                 </GroupBox>
 
+                <GroupBox Header="Modélitée de reglement" Margin="0,12,0,0">
+                    <StackPanel Margin="8">
+                        <ComboBox x:Name="CmbPayment"
+                                  Width="260"
+                                  Style="{StaticResource DarkCombo}"
+                                  DisplayMemberPath="Name"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding PaymentTermsId, Mode=TwoWay}"
+                                  SelectionChanged="CmbPayment_SelectionChanged"/>
+                        <TextBlock Text="Choisissez les modélités de reglements."
+                            Foreground="#B0B0B0" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
                 <GroupBox Header="Compte bancaire (pied de page)" Margin="0,12,0,0">
                     <StackPanel Margin="8">
                         <ComboBox x:Name="CmbBank"

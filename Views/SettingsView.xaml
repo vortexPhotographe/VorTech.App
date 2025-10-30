@@ -3,180 +3,343 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="700">
+
+    <!-- =======================
+         RESSOURCES (mêmes tons que ArticlesView)
+         ======================= -->
     <UserControl.Resources>
+        <!-- Listes fixes pour les ComboBox du DataGrid (si tu les utilises ici) -->
+        <x:Array x:Key="PayModes" Type="{x:Type sys:String}">
+            <sys:String>SIMPLE</sys:String>
+            <sys:String>DUAL</sys:String>
+        </x:Array>
+        <x:Array x:Key="SimpleDues" Type="{x:Type sys:String}">
+            <sys:String>AT_ORDER</sys:String>
+            <sys:String>AT_DELIVERY</sys:String>
+        </x:Array>
 
-        <!-- GroupBox : bordure fine + titre un peu plus grand -->
-        <Style TargetType="GroupBox">
-            <Setter Property="Margin" Value="0,0,0,12"/>
-            <Setter Property="Padding" Value="6"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="BorderThickness" Value="1"/>
+        <!-- Boutons -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="MinWidth" Value="90"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="GroupBox">
-                        <Grid SnapsToDevicePixels="True">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- En-tête -->
-                            <Border Background="{TemplateBinding Background}" Padding="4,0,4,0">
-                                <ContentPresenter ContentSource="Header">
-                                    <ContentPresenter.Resources>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="FontSize" Value="13"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                            <Setter Property="Foreground" Value="#E0E0E0"/>
-                                        </Style>
-                                    </ContentPresenter.Resources>
-                                </ContentPresenter>
-                            </Border>
-
-                            <!-- Corps -->
-                            <Border Grid.Row="1"
-                    Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}"
-                    BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="2"
-                    Padding="{TemplateBinding Padding}">
-                                <ContentPresenter/>
-                            </Border>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- TextBox sombre (pour les champs de saisie) -->
-        <Style x:Key="DarkTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#232323"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="Padding" Value="6,3"/>
-        </Style>
-
-        <!-- Items de ComboBox (ligne dans le menu déroulant) -->
-        <Style x:Key="DarkComboItem" TargetType="{x:Type ComboBoxItem}">
-            <Setter Property="Foreground" Value="#D0D0D0"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="Padding"    Value="8,4"/>
-            <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#383838"/>
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#404040"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- ComboBox sombre (non éditable, popup sombre) -->
-        <Style x:Key="DarkCombo" TargetType="{x:Type ComboBox}">
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="Foreground" Value="#D0D0D0"/>
-            <Setter Property="Background" Value="#232323"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ComboBox}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                                <ColumnDefinition Width="20"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- zone sélection -->
-                            <Border x:Name="Border" Grid.ColumnSpan="2"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="1" CornerRadius="2"/>
-                            <ContentPresenter x:Name="ContentSite"
-                                              Margin="6,2,20,2"
-                                              VerticalAlignment="Center"
-                                              Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
-
-                            <!-- bouton flèche -->
-                            <ToggleButton Grid.Column="1"
-                          x:Name="DropDownToggle"
-                          Focusable="False"
-                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                          Background="{TemplateBinding Background}"
-                          BorderBrush="{TemplateBinding BorderBrush}">
-                                <Path HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Data="M 0 0 L 4 4 L 8 0 Z" Fill="#D0D0D0"/>
-                            </ToggleButton>
-
-                            <!-- popup -->
-                            <Popup x:Name="PART_Popup"
-                   Placement="Bottom"
-                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                   AllowsTransparency="True" Focusable="False"
-                   PopupAnimation="Slide">
-                                <Border Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1">
-                                    <ScrollViewer CanContentScroll="True">
-                                        <StackPanel IsItemsHost="True"/>
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-
-                        <!-- états -->
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#4A4A4A"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource Select}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#888"/>
-                                <Setter TargetName="Border" Property="Background" Value="#1C1C1C"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#2C2C2C"/>
+                                <Setter Property="Opacity" Value="0.6"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-
-            <!-- style appliqué aux items -->
-            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
         </Style>
 
+        <!-- TextBox -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Margin" Value="0,4,0,8"/>
+        </Style>
+
+        <!-- ComboBox (chevron + popup sombre) -->
+        <Style TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1" CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- ✅ Bouton de bascule qui ouvre/ferme la liste -->
+                                    <ToggleButton x:Name="PART_DropDownButton"
+                            Grid.Column="0"
+                            Focusable="False"
+                            IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                            Background="Transparent" BorderThickness="0" Padding="0">
+                                        <Path Data="M 0 0 L 8 0 L 4 4 Z"
+                      Fill="{DynamicResource Fore}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </ToggleButton>
+
+                                    <!-- Affichage de la sélection -->
+                                    <ContentPresenter Grid.Column="1" Margin="6,0,6,0"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding SelectionBoxItem}"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Liste déroulante -->
+                            <Popup x:Name="PART_Popup"
+                 Placement="Bottom"
+                 AllowsTransparency="True"
+                 IsOpen="{TemplateBinding IsDropDownOpen}">
+                                <Border CornerRadius="4"
+                    Background="{DynamicResource Panel}"
+                    BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DataGrid -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="RowBackground" Value="{DynamicResource Panel}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource HeaderBg}"/>
+            <Setter Property="RowHeight" Value="30"/>
+            <Setter Property="ColumnHeaderHeight" Value="30"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Margin" Value="0,8,0,8"/>
+        </Style>
+
+        <!-- GroupBox (carte) -->
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Margin" Value="0,12,0,0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1" CornerRadius="6"/>
+                            <ContentPresenter Margin="8,20,8,8"/>
+                            <!-- en-tête sans plaque sombre -->
+                            <Border Background="Transparent" Padding="6,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    IsHitTestVisible="False"
+                                    Margin="8,-10,0,0">
+                                <TextBlock Text="{TemplateBinding Header}"
+                                   Foreground="{DynamicResource Fore}"
+                                   FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TabControl : espace anti-chevauchement -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{DynamicResource Bg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <!-- Barre d'onglets -->
+                                <RowDefinition Height="8"/>
+                                <!-- Espace visuel -->
+                                <RowDefinition Height="*"/>
+                                <!-- Contenu -->
+                            </Grid.RowDefinitions>
+
+                            <!-- Barre d’onglets : clipsée dans sa rangée -->
+                            <TabPanel Grid.Row="0"
+                                    IsItemsHost="True"
+                                    ClipToBounds="True"
+                                    Panel.ZIndex="1"/>
+
+                            <!-- Espace qui ne bloque PAS les clics -->
+                            <Rectangle Grid.Row="1" Height="8"
+                                 Fill="Transparent"
+                                 IsHitTestVisible="False"/>
+
+                            <!-- Contenu de l’onglet -->
+                            <Border Grid.Row="2"
+                                  CornerRadius="6"
+                                  Background="{DynamicResource Panel}"
+                                  BorderBrush="{DynamicResource Border}"
+                                  BorderThickness="1"
+                                  Panel.ZIndex="0">
+                                <ContentPresenter ContentSource="SelectedContent" Margin="8"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd" CornerRadius="6"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Style dédié au menu latéral -->
+        <Style x:Key="SideNavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Margin" Value="0,8,0,0"/>
+            <!-- espace entre les boutons -->
+        </Style>
+        <!-- ComboBox compacte (chevron + padding plus petits) -->
+        <Style x:Key="ComboBox.Compact" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Padding"   Value="4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1" CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="22"/>
+                                        <!-- ← chevron plus étroit -->
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ToggleButton x:Name="PART_DropDownButton"
+                            Grid.Column="0" Focusable="False"
+                            IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                            Background="Transparent" BorderThickness="0" Padding="0">
+                                        <Path Data="M 0 0 L 8 0 L 4 4 Z"
+                      Fill="{DynamicResource Fore}"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </ToggleButton>
+                                    <ContentPresenter Grid.Column="1" Margin="6,0,6,0"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding SelectionBoxItem}"/>
+                                </Grid>
+                            </Border>
+
+                            <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                 IsOpen="{TemplateBinding IsDropDownOpen}">
+                                <Border CornerRadius="4" Background="{DynamicResource Panel}"
+                    BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Select}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CellTextBox" TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Padding" Value="4,0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
+    <!-- === LAYOUT === -->
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220"/>
             <!-- sidebar -->
             <ColumnDefinition Width="12"/>
             <ColumnDefinition Width="*"/>
-            <!-- content -->
+            <!-- contenu -->
         </Grid.ColumnDefinitions>
 
-        <!-- ===================== -->
-        <!-- Sidebar               -->
-        <!-- ===================== -->
+        <!-- Sidebar -->
         <StackPanel Grid.Column="0" Orientation="Vertical">
-            <TextBlock Text="Réglages" FontWeight="Bold" Margin="0,0,0,8"/>
-            <Button Content="Général"   Margin="0,0,0,6" Click="BtnShowGeneral_Click"/>
-            <Button Content="Articles"  Margin="0,0,0,6" Click="BtnShowArticles_Click"/>
-            <Button x:Name="BtnShowDocs" Content="Devis &amp; Factures" Click="BtnShowDocs_Click"/>
+            <TextBlock Text="Réglages" FontWeight="Bold" />
+            <Button Content="Général" Style="{StaticResource SideNavButton}" Click="BtnShowGeneral_Click"/>
+            <Button Content="Articles" Style="{StaticResource SideNavButton}" Click="BtnShowArticles_Click"/>
+            <Button x:Name="BtnShowDocs" Content="Devis &amp; Factures" Style="{StaticResource SideNavButton}" Click="BtnShowDocs_Click"/>
         </StackPanel>
 
-        <!-- ===================== -->
-        <!-- PANELS container      -->
-        <!-- ===================== -->
+        <!-- PANELS -->
         <Grid Grid.Column="2">
 
-            <!-- ===================== -->
-            <!-- Panel : Général       -->
-            <!-- ===================== -->
+            <!-- ========== PANEL GENERAL (inchangé fonctionnellement) ========== -->
             <Grid x:Name="PanelGeneral" Visibility="Collapsed">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -185,21 +348,18 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Général" FontWeight="Bold" Margin="0,0,0,8"/>
+                <TextBlock Text="Général" FontWeight="Bold"/>
 
-                <!-- Contenu -->
                 <StackPanel Grid.Row="2" Orientation="Vertical">
-                    <!-- Profil fiscal -->
-                    <GroupBox Header="Profil fiscal" Margin="0,0,24,12" HorizontalContentAlignment="Stretch">
-                        <StackPanel Margin="8" Orientation="Horizontal">
-                            <RadioButton x:Name="RBTaxMicro" Content="Micro-entreprise (sans TVA)" Margin="0,0,12,0"/>
+                    <GroupBox Header="Profil fiscal">
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                            <RadioButton x:Name="RBTaxMicro" Content="Micro-entreprise (sans TVA)"/>
                             <RadioButton x:Name="RBTaxTVA"   Content="TVA"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <!-- Identité société -->
-                    <GroupBox Header="Identité société" Margin="0,0,24,0" HorizontalContentAlignment="Stretch">
-                        <Grid Margin="8" MinWidth="480">
+                    <GroupBox Header="Identité société">
+                        <Grid Margin="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -218,211 +378,366 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom commercial" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="BoxNomCommercial" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="BoxNomCommercial" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="SIRET" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="BoxSiret" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="BoxSiret" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Adresse 1" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BoxAdresse1" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BoxAdresse1" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Adresse 2" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="BoxAdresse2" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="BoxAdresse2" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="4" Grid.Column="0" Text="Code postal" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="BoxCodePostal" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="BoxCodePostal" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="5" Grid.Column="0" Text="Ville" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="5" Grid.Column="1" x:Name="BoxVille" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="5" Grid.Column="1" x:Name="BoxVille" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="6" Grid.Column="0" Text="Pays" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="BoxPays" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="BoxPays" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="7" Grid.Column="0" Text="Email" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="BoxEmail" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="BoxEmail" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="8" Grid.Column="0" Text="Téléphone" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="BoxTelephone" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="BoxTelephone" Style="{StaticResource DarkTextBox}"/>
 
                             <TextBlock Grid.Row="9" Grid.Column="0" Text="Site web" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="9" Grid.Column="1" x:Name="BoxSiteWeb" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="9" Grid.Column="1" x:Name="BoxSiteWeb" Style="{StaticResource DarkTextBox}"/>
                         </Grid>
                     </GroupBox>
                 </StackPanel>
 
-                <!-- Bouton Enregistrer (en bas) -->
-                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
+                <StackPanel Grid.Row="3" Orientation="Horizontal">
                     <Button Content="Enregistrer" Width="140" Click="BtnSaveGeneral_Click"/>
                 </StackPanel>
             </Grid>
 
-            <!-- ===================== -->
-            <!-- Panel : Articles      -->
-            <!-- ===================== -->
-            <Grid x:Name="PanelArticles" Visibility="Collapsed" Margin="0">
+            <!-- ========== PANEL ARTICLES (inchangé visuel sombre) ========== -->
+            <Grid x:Name="PanelArticles" Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Catégories -->
-                <GroupBox Grid.Column="2" Header="Catégories" Margin="6,0,0,0">
+                <GroupBox Grid.Column="0" Header="TVA">
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button x:Name="BtnAddCategory"    Content="Ajouter"      Width="100" Margin="0,0,8,0"
-              Click="BtnAddCategory_Click"/>
-                            <Button x:Name="BtnSaveCategory"   Content="Enregistrer"  Width="120" Margin="0,0,8,0"
-              Click="BtnSaveCategory_Click"/>
-                            <Button x:Name="BtnDeleteCategory" Content="Supprimer"    Width="100"
-              Click="BtnDeleteCategory_Click"/>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button x:Name="BtnAddTva" Content="Ajouter" Width="100" Click="BtnAddTva_Click"/>
+                            <Button x:Name="BtnSaveTva" Content="Enregistrer" Width="120" Click="BtnSaveTva_Click"/>
+                            <Button x:Name="BtnDeleteTva" Content="Supprimer" Width="100" Click="BtnDeleteTva_Click"/>
                         </StackPanel>
-
-                        <DataGrid x:Name="GridCategories"
-              AutoGenerateColumns="False" CanUserAddRows="False"
-              HeadersVisibility="Column" IsReadOnly="False">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Nom"   Binding="{Binding Name, Mode=TwoWay}" Width="2*"/>
-                                <DataGridCheckBoxColumn Header="Actif" Binding="{Binding Actif, Mode=TwoWay}" Width="Auto"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </DockPanel>
-                </GroupBox>
-                
-                <!-- TVA -->
-                <GroupBox Grid.Column="0" Header="TVA" Margin="0,0,6,0">
-                    <DockPanel>
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button x:Name="BtnAddTva"    Content="Ajouter"      Width="100" Margin="0,0,8,0" Click="BtnAddTva_Click"/>
-                            <Button x:Name="BtnSaveTva"   Content="Enregistrer"  Width="120" Margin="0,0,8,0" Click="BtnSaveTva_Click"/>
-                            <Button x:Name="BtnDeleteTva" Content="Supprimer"    Width="100"                   Click="BtnDeleteTva_Click"/>
-                        </StackPanel>
-
-                        <DataGrid x:Name="GridTva"
-                                  AutoGenerateColumns="False" CanUserAddRows="False"
+                        <DataGrid x:Name="GridTva" AutoGenerateColumns="False" CanUserAddRows="False"
                                   HeadersVisibility="Column" IsReadOnly="False">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Nom"      Binding="{Binding Name, Mode=TwoWay}"  Width="2*"/>
-                                <DataGridTextColumn Header="Taux (%)" Binding="{Binding Rate, Mode=TwoWay, StringFormat={}{0:0.##}}" Width="*"/>
+                                <DataGridTextColumn Header="Nom" Binding="{Binding Name, Mode=TwoWay}" Width="2*"/>
+                                <DataGridTextColumn Header="Taux (%)" Binding="{Binding Rate, Mode=TwoWay, StringFormat={}{0:0.##}}" Width="*" />
                                 <DataGridCheckBoxColumn Header="Défaut" Binding="{Binding IsDefault, Mode=TwoWay}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
                 </GroupBox>
 
-                <!-- Cotisations (Micro) -->
-                <GroupBox Grid.Column="1" Header="Cotisations (Micro)" Margin="6,0,0,0">
+                <GroupBox Grid.Column="1" Header="Cotisations (Micro)">
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button x:Name="BtnAddCoti"    Content="Ajouter"      Width="100" Margin="0,0,8,0" Click="BtnAddCoti_Click"/>
-                            <Button x:Name="BtnSaveCoti"   Content="Enregistrer"  Width="120" Margin="0,0,8,0" Click="BtnSaveCoti_Click"/>
-                            <Button x:Name="BtnDeleteCoti" Content="Supprimer"    Width="100"                   Click="BtnDeleteCoti_Click"/>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button x:Name="BtnAddCoti" Content="Ajouter" Width="100" Click="BtnAddCoti_Click"/>
+                            <Button x:Name="BtnSaveCoti" Content="Enregistrer" Width="120" Click="BtnSaveCoti_Click"/>
+                            <Button x:Name="BtnDeleteCoti" Content="Supprimer" Width="100" Click="BtnDeleteCoti_Click"/>
                         </StackPanel>
-
-                        <DataGrid x:Name="GridCoti"
-                                  AutoGenerateColumns="False" CanUserAddRows="False"
+                        <DataGrid x:Name="GridCoti" AutoGenerateColumns="False" CanUserAddRows="False"
                                   HeadersVisibility="Column" IsReadOnly="False">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Nom"      Binding="{Binding Name, Mode=TwoWay}"  Width="2*"/>
+                                <DataGridTextColumn Header="Nom" Binding="{Binding Name, Mode=TwoWay}" Width="2*"/>
                                 <DataGridTextColumn Header="Taux (%)" Binding="{Binding Rate, Mode=TwoWay, StringFormat={}{0:0.##}}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </GroupBox>
+
+                <GroupBox Grid.Column="2" Header="Catégories">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button x:Name="BtnAddCategory" Content="Ajouter" Width="100" Click="BtnAddCategory_Click"/>
+                            <Button x:Name="BtnSaveCategory" Content="Enregistrer" Width="120" Click="BtnSaveCategory_Click"/>
+                            <Button x:Name="BtnDeleteCategory" Content="Supprimer" Width="100" Click="BtnDeleteCategory_Click"/>
+                        </StackPanel>
+                        <DataGrid x:Name="GridCategories" AutoGenerateColumns="False" CanUserAddRows="False"
+                                  HeadersVisibility="Column" IsReadOnly="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Nom" Binding="{Binding Name, Mode=TwoWay}" Width="2*"/>
+                                <DataGridCheckBoxColumn Header="Actif" Binding="{Binding Actif, Mode=TwoWay}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
                 </GroupBox>
             </Grid>
 
-            <!-- ========================== -->
-            <!-- Panel : Devis & Factures  -->
-            <!-- ========================== -->
-            <Grid x:Name="PanelDocs" Visibility="Collapsed" Margin="0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="640"/>
-                    <!-- Colonne gauche compacte -->
-                    <ColumnDefinition Width="*"/>
-                    <!-- Espace libre / prévisualisation -->
-                </Grid.ColumnDefinitions>
+            <!-- ========== PANEL DEVIS & FACTURES ========== -->
+            <Grid x:Name="PanelDocs" Visibility="Collapsed">
+                <TabControl x:Name="TabsDocs" Margin="0,8,0,0">
+                    <!-- Onglet 1 : PARAMS -->
+                    <TabItem x:Name="TabParams" Header="Paramètres devis &amp; factures">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Background="Transparent">
+                            <StackPanel Margin="6">
+                                <!-- Ligne 2 colonnes : Numérotation / Compteur -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
 
-                <!-- Colonne gauche : 3 GroupBox empilés -->
-                <StackPanel Grid.Column="0" Orientation="Vertical">
+                                    <GroupBox Grid.Column="0" Header="Numérotation — formats (variables : {yyyy} {MM} {####})">
+                                        <Grid Margin="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="12"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="160"/>
+                                            </Grid.ColumnDefinitions>
 
-                    <!-- 1) Numérotation — formats -->
-                    <GroupBox Header="Numérotation — formats (variables : {yyyy} {MM} {####})"
-                              Margin="0,0,0,12" Width="620" HorizontalAlignment="Left">
-                        <StackPanel Margin="8" Orientation="Vertical">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Devis :" Width="70" VerticalAlignment="Center"/>
-                                <TextBox  x:Name="TxtPatternDevis" Width="300" Margin="0,0,6,0"/>
-                                <ComboBox x:Name="CmbScopeDevis" 
-                                          SelectedValuePath="Content" 
-                                          Width="110" 
-                                          Style="{StaticResource DarkCombo}">
-                                    <ComboBoxItem Content="MONTHLY"/>
-                                    <ComboBoxItem Content="YEARLY"/>
-                                </ComboBox>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Devis :" VerticalAlignment="Center"/>
+                                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtPatternDevis" Style="{StaticResource DarkTextBox}"/>
+                                            <ComboBox  Grid.Row="0" Grid.Column="2" x:Name="CmbScopeDevis" Style="{StaticResource ComboBox.Compact}" MinWidth="110" VerticalAlignment="Center">
+                                                <ComboBoxItem Content="MONTHLY"/>
+                                                <ComboBoxItem Content="YEARLY"/>
+                                            </ComboBox>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Factures :" VerticalAlignment="Center"/>
+                                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtPatternFact" Style="{StaticResource DarkTextBox}"/>
+                                            <ComboBox  Grid.Row="2" Grid.Column="2" x:Name="CmbScopeFact" Style="{StaticResource ComboBox.Compact}" MinWidth="110" VerticalAlignment="Center">
+                                                <ComboBoxItem Content="MONTHLY"/>
+                                                <ComboBoxItem Content="YEARLY"/>
+                                            </ComboBox>
+
+                                            <Button Grid.Row="4" Grid.Column="1" x:Name="BtnSaveFormats" Content="Enregistrer formats" Width="170"
+                                                    Click="BtnSaveFormats_Click"
+                                                    Grid.ColumnSpan="2"
+                                                    HorizontalAlignment="Center"/>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <GroupBox Grid.Column="2" Header="Compteur courant (période en cours)">
+                                        <Grid Margin="4">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="8"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="180"/>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="60"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Devis : prochain n° =" VerticalAlignment="Center"/>
+                                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtNextDevis" Style="{StaticResource DarkTextBox}"/>
+                                            <Button    Grid.Row="0" 
+                                                       Grid.Column="2" 
+                                                       x:Name="BtnSaveNextDevis" 
+                                                       Content="OK" 
+                                                       Margin="0,0,8,0"
+                                                       MinWidth="44"
+                                                       MinHeight="30"
+                                                       VerticalAlignment="Center"
+                                                       Click="BtnSaveNextDevis_Click"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Factures : prochain n° =" VerticalAlignment="Center"/>
+                                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtNextFact" Style="{StaticResource DarkTextBox}"/>
+                                            <Button    Grid.Row="2" 
+                                                       Grid.Column="2" 
+                                                       x:Name="BtnSaveNextFact" 
+                                                       Content="OK" 
+                                                       Margin="0,0,8,0"
+                                                       MinWidth="44"
+                                                       MinHeight="30"
+                                                       VerticalAlignment="Center"
+                                                       Click="BtnSaveNextFact_Click"/>
+                                        </Grid>
+                                    </GroupBox>
+                                </Grid>
+
+                                <!-- Comptes bancaires -->
+                                <GroupBox Header="Comptes bancaires">
+                                    <DockPanel LastChildFill="True">
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,6" DockPanel.Dock="Top">
+                                            <Button x:Name="BtnBankAdd"    Content="Ajouter"     Width="90"  Click="BtnBankAdd_Click"/>
+                                            <Button x:Name="BtnBankSave"   Content="Enregistrer" Width="110" Click="BtnBankSave_Click"/>
+                                            <Button x:Name="BtnBankDelete" Content="Supprimer"   Width="100" Click="BtnBankDelete_Click"/>
+                                        </StackPanel>
+
+                                        <DataGrid x:Name="GridBank" Margin="0,6,0,0"
+              AutoGenerateColumns="False" CanUserAddRows="False"
+              HeadersVisibility="Column" IsReadOnly="False">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Nom d'affichage"
+                            Binding="{Binding DisplayName, Mode=TwoWay}"
+                            Width="*"/>
+                                                <DataGridTextColumn Header="IBAN"
+                            Binding="{Binding Iban, Mode=TwoWay}"
+                            Width="2*"/>
+                                                <DataGridTextColumn Header="BIC"
+                            Binding="{Binding Bic, Mode=TwoWay}"
+                            Width="*"/>
+                                                <DataGridTextColumn Header="Titulaire"
+                            Binding="{Binding Holder, Mode=TwoWay}"
+                            Width="*"/>
+                                                <DataGridTextColumn Header="Banque"
+                            Binding="{Binding BankName, Mode=TwoWay}"
+                            Width="*"/>
+                                                <DataGridCheckBoxColumn Header="Par défaut"
+                                Binding="{Binding IsDefault, Mode=TwoWay}"
+                                Width="Auto"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </DockPanel>
+                                </GroupBox>
+
+                                <!-- Modalités de règlement -->
+                                <GroupBox Header="Modalités de règlement">
+                                    <DockPanel LastChildFill="True">
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,6" DockPanel.Dock="Top">
+                                            <Button x:Name="BtnPayAdd"    Content="Ajouter"     Width="90"  Click="BtnPayAdd_Click"/>
+                                            <Button x:Name="BtnPaySave"   Content="Enregistrer" Width="110" Click="BtnPaySave_Click"/>
+                                            <Button x:Name="BtnPayDelete" Content="Supprimer"   Width="100" Click="BtnPayDelete_Click"/>
+                                        </StackPanel>
+
+                                        <DataGrid x:Name="GridPay" Margin="0,6,0,0"
+              AutoGenerateColumns="False" CanUserAddRows="False"
+              HeadersVisibility="Column" IsReadOnly="False">
+                                            <DataGrid.Columns>
+                                                <!-- Nom -->
+                                                <DataGridTextColumn Header="Nom"
+                            Binding="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Width="2*"/>
+
+                                                <!-- Mode -->
+                                                <DataGridComboBoxColumn Header="Mode" Width="*"
+                                SelectedItemBinding="{Binding Mode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <DataGridComboBoxColumn.ElementStyle>
+                                                        <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBox.Compact}">
+                                                            <Setter Property="ItemsSource">
+                                                                <Setter.Value>
+                                                                    <x:Array Type="{x:Type sys:String}">
+                                                                        <sys:String>SIMPLE</sys:String>
+                                                                        <sys:String>DUAL</sys:String>
+                                                                    </x:Array>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </DataGridComboBoxColumn.ElementStyle>
+                                                    <DataGridComboBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBox.Compact}">
+                                                            <Setter Property="ItemsSource">
+                                                                <Setter.Value>
+                                                                    <x:Array Type="{x:Type sys:String}">
+                                                                        <sys:String>SIMPLE</sys:String>
+                                                                        <sys:String>DUAL</sys:String>
+                                                                    </x:Array>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </DataGridComboBoxColumn.EditingElementStyle>
+                                                </DataGridComboBoxColumn>
+
+                                                <!-- Échéance simple -->
+                                                <DataGridComboBoxColumn Header="Échéance simple" Width="*"
+                                SelectedItemBinding="{Binding SimpleDue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <DataGridComboBoxColumn.ElementStyle>
+                                                        <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBox.Compact}">
+                                                            <Setter Property="ItemsSource">
+                                                                <Setter.Value>
+                                                                    <x:Array Type="{x:Type sys:String}">
+                                                                        <sys:String>AT_ORDER</sys:String>
+                                                                        <sys:String>AT_DELIVERY</sys:String>
+                                                                    </x:Array>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </DataGridComboBoxColumn.ElementStyle>
+                                                    <DataGridComboBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBox.Compact}">
+                                                            <Setter Property="ItemsSource">
+                                                                <Setter.Value>
+                                                                    <x:Array Type="{x:Type sys:String}">
+                                                                        <sys:String>AT_ORDER</sys:String>
+                                                                        <sys:String>AT_DELIVERY</sys:String>
+                                                                    </x:Array>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </DataGridComboBoxColumn.EditingElementStyle>
+                                                </DataGridComboBoxColumn>
+
+                                                <!-- % acompte (DUAL) -->
+                                                <DataGridTextColumn Header="% acompte (DUAL)" Width="*"
+    Binding="{Binding OrderPct, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.#}}">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="TextAlignment" Value="Right"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                    <DataGridTextColumn.EditingElementStyle>
+                                                        <Style TargetType="TextBox" BasedOn="{StaticResource CellTextBox}">
+                                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.EditingElementStyle>
+                                                </DataGridTextColumn>
+
+                                                <!-- Par défaut -->
+                                                <DataGridCheckBoxColumn Header="Par défaut" Width="Auto"
+                                Binding="{Binding IsDefault, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <DataGridCheckBoxColumn.ElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                            <Setter Property="IsHitTestVisible" Value="False"/>
+                                                            <Setter Property="Focusable" Value="False"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.ElementStyle>
+                                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                                </DataGridCheckBoxColumn>
+
+                                                <!-- Texte -->
+                                                <DataGridTextColumn Header="Texte" Width="2*"
+                            Binding="{Binding Body, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <DataGridTextColumn.EditingElementStyle>
+                                                        <Style TargetType="TextBox" BasedOn="{StaticResource DarkTextBox}"/>
+                                                    </DataGridTextColumn.EditingElementStyle>
+                                                </DataGridTextColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </DockPanel>
+                                </GroupBox>
                             </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Factures :" Width="70" VerticalAlignment="Center"/>
-                                <TextBox  x:Name="TxtPatternFact" Width="300" Margin="0,0,6,0"/>
-                                <ComboBox x:Name="CmbScopeFact" 
-                                          SelectedValuePath="Content" 
-                                          Width="110" 
-                                          Style="{StaticResource DarkCombo}">
-                                    <ComboBoxItem Content="MONTHLY"/>
-                                    <ComboBoxItem Content="YEARLY"/>
-                                </ComboBox>
-                            </StackPanel>
-
-                            <Button x:Name="BtnSaveFormats" Content="Enregistrer formats" Width="160" Click="BtnSaveFormats_Click"/>
-                        </StackPanel>
-                    </GroupBox>
-
-                    <!-- 2) Compteurs courants -->
-                    <GroupBox Header="Compteur courant (période en cours)"
-                              Margin="0,0,0,12" Width="620" HorizontalAlignment="Left">
-                        <StackPanel Margin="8" Orientation="Vertical">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Devis : prochain n° =" Width="150" VerticalAlignment="Center"/>
-                                <TextBox x:Name="TxtNextDevis" Width="60" Margin="0,0,6,0"/>
-                                <Button x:Name="BtnSaveNextDevis" Content="OK" Width="60" Click="BtnSaveNextDevis_Click"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Factures : prochain n° =" Width="150" VerticalAlignment="Center"/>
-                                <TextBox x:Name="TxtNextFact" Width="60" Margin="0,0,6,0"/>
-                                <Button x:Name="BtnSaveNextFact" Content="OK" Width="60" Click="BtnSaveNextFact_Click"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </GroupBox>
-
-                    <!-- 3) Comptes bancaires -->
-                    <GroupBox Header="Comptes bancaires" Width="620" HorizontalAlignment="Left">
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,8,8,4">
-                                <Button x:Name="BtnBankAdd"    Content="Ajouter"      Width="90"  Margin="0,0,8,0" Click="BtnBankAdd_Click"/>
-                                <Button x:Name="BtnBankSave"   Content="Enregistrer"  Width="110" Margin="0,0,8,0" Click="BtnBankSave_Click"/>
-                                <Button x:Name="BtnBankDelete" Content="Supprimer"    Width="90"                 Click="BtnBankDelete_Click"/>
-                            </StackPanel>
-
-                            <DataGrid x:Name="GridBank" Margin="8" AutoGenerateColumns="False"
-                                      CanUserAddRows="False" HeadersVisibility="Column" IsReadOnly="False">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Nom d'affichage" Binding="{Binding DisplayName, Mode=TwoWay}" Width="*"  />
-                                    <DataGridTextColumn Header="IBAN"            Binding="{Binding Iban, Mode=TwoWay}"         Width="2*" />
-                                    <DataGridTextColumn Header="BIC"             Binding="{Binding Bic, Mode=TwoWay}"          Width="*"  />
-                                    <DataGridTextColumn Header="Titulaire"       Binding="{Binding Holder, Mode=TwoWay}"       Width="*"  />
-                                    <DataGridTextColumn Header="Banque"          Binding="{Binding BankName, Mode=TwoWay}"     Width="*"  />
-                                    <DataGridCheckBoxColumn Header="Par défaut"  Binding="{Binding IsDefault, Mode=TwoWay}"    Width="Auto"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </DockPanel>
-                    </GroupBox>
-
-                </StackPanel>
-
-                <!-- Colonne droite (réservée à une prévisualisation future) -->
-                <Border Grid.Column="1"/>
+                    <!-- Onglet 2 : PREVIEW (placeholder, à remplir plus tard) -->
+                    <TabItem x:Name="TabPreview" Header="Aperçu PDF (venir)">
+                        <Grid Background="{DynamicResource Bg}">
+                            <TextBlock Text="Prévisualisation du modèle de devis — à venir" Margin="12"/>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
             </Grid>
+
         </Grid>
     </Grid>
 </UserControl>

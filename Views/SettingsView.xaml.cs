@@ -18,6 +18,7 @@ namespace VorTech.App.Views
         private ObservableCollection<TvaVM> _tvas = new();
         private ObservableCollection<CotiVM> _cotis = new();
         private CompanyProfile _company = new CompanyProfile();
+        private ObservableCollection<PaymentTermVM> _pay = new();
         private readonly INumberingService _num = new NumberingService();
         private readonly BankAccountService _bank = new BankAccountService();
 
@@ -28,6 +29,7 @@ namespace VorTech.App.Views
             ShowPanel(PanelGeneral);
             LoadArticles();
             LoadBankAccounts();
+            LoadPaymentTerms();
         }
 
         // ---------- Panels ----------
@@ -230,6 +232,23 @@ namespace VorTech.App.Views
             MessageBox.Show("Comptes bancaires enregistrés.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        private void LoadPaymentTerms()
+        {
+            _pay = new ObservableCollection<PaymentTermVM>(
+                _catalogs.GetPaymentTerms().Select(p => new PaymentTermVM
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Mode = p.Mode,              // "SIMPLE" | "DUAL"
+                    SimpleDue = p.SimpleDue,    // "AT_ORDER" | "AT_DELIVERY" (si SIMPLE)
+                    OrderPct = p.OrderPct,      // double? (si DUAL)
+                    IsDefault = p.IsDefault,
+                    Body = p.Body
+                })
+            );
+            GridPay.ItemsSource = _pay;
+        }
+
         private static void SelectByContent(ComboBox cb, string? value, string fallback = "MONTHLY")
         {
             var wanted = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
@@ -261,6 +280,69 @@ namespace VorTech.App.Views
 
             _bank.Delete(b.Id);
             LoadBankAccounts();
+        }
+
+        // --- Btn pour les modalitée de réglement
+        private void BtnPayAdd_Click(object sender, RoutedEventArgs e)
+        {
+            _pay.Add(new PaymentTermVM
+            {
+                Id = 0,
+                Name = "Nouvelles modalités",
+                Mode = "SIMPLE",
+                SimpleDue = "AT_DELIVERY",
+                OrderPct = null,
+                IsDefault = (_pay.Count == 0), // 1ère ligne par défaut
+                Body = ""
+            });
+        }
+
+        private void BtnPaySave_Click(object sender, RoutedEventArgs e)
+        {
+            GridPay.CommitEdit(DataGridEditingUnit.Cell, true);
+            GridPay.CommitEdit(DataGridEditingUnit.Row, true);
+
+            foreach (var t in _pay)
+            {
+                // normalisation
+                if (string.Equals(t.Mode, "SIMPLE", StringComparison.OrdinalIgnoreCase))
+                {
+                    t.OrderPct = null;
+                    if (string.IsNullOrWhiteSpace(t.SimpleDue)) t.SimpleDue = "AT_DELIVERY";
+                }
+                else
+                {
+                    t.Mode = "DUAL";
+                    if (t.OrderPct is null) t.OrderPct = 50.0;
+                    t.SimpleDue = null;
+                }
+
+                // persistance
+                if (t.Id == 0)
+                    t.Id = _catalogs.InsertPaymentTerm(t.ToEntity());
+                else
+                    _catalogs.UpdatePaymentTerm(t.ToEntity());
+            }
+
+            // rechargement propre
+            LoadPaymentTerms();
+            MessageBox.Show("Modalités enregistrées.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnPayDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridPay.SelectedItem is not PaymentTermVM sel) return;
+            if (sel.Id == 0)
+            {
+                _pay.Remove(sel);
+                return;
+            }
+            var ask = MessageBox.Show("Supprimer ces modalités ?", "Confirmer",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (ask != MessageBoxResult.Yes) return;
+
+            _catalogs.DeletePaymentTerm(sel.Id);
+            LoadPaymentTerms();
         }
 
         // --- CompanyProfile
@@ -333,8 +415,12 @@ namespace VorTech.App.Views
         }
         private void BtnShowDocs_Click(object sender, RoutedEventArgs e)
         {
-            LoadDocs();
+            // afficher le panneau Devis & Factures
             ShowPanel(PanelDocs);
+
+            // aller sur l'onglet Paramètres et charger les valeurs
+            if (TabsDocs != null) TabsDocs.SelectedItem = TabParams;
+            LoadDocs();
         }
         private void LoadDocs()
         {
@@ -377,6 +463,28 @@ namespace VorTech.App.Views
             public int Id { get; set; }
             public string Name { get; set; } = "";
             public decimal Rate { get; set; }  // %
+        }
+
+        private class PaymentTermVM
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = "";
+            public string Mode { get; set; } = "SIMPLE";           // "SIMPLE" | "DUAL"
+            public string? SimpleDue { get; set; }                 // "AT_ORDER" | "AT_DELIVERY" (si SIMPLE)
+            public double? OrderPct { get; set; }                  // 0..100 (si DUAL)
+            public bool IsDefault { get; set; }
+            public string Body { get; set; } = "";
+
+            public VorTech.App.Models.PaymentTerm ToEntity() => new VorTech.App.Models.PaymentTerm
+            {
+                Id = this.Id,
+                Name = this.Name,
+                Mode = this.Mode,
+                SimpleDue = this.SimpleDue,
+                OrderPct = this.OrderPct,
+                IsDefault = this.IsDefault,
+                Body = this.Body
+            };
         }
     }
 }

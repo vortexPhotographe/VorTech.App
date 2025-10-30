@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using VorTech.App.Models;
+using Windows.ApplicationModel.Payments;
 
 namespace VorTech.App.Services
 {
@@ -69,6 +70,22 @@ CREATE TABLE IF NOT EXISTS Categories(
             );";
                 cmd.ExecuteNonQuery();
             }
+
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS PaymentTerms(
+  Id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name       TEXT    NOT NULL,
+  Mode       TEXT    NOT NULL,           -- 'SIMPLE' | 'DUAL'
+  SimpleDue  TEXT    NULL,               -- 'AT_ORDER' | 'AT_DELIVERY' (si SIMPLE)
+  OrderPct   REAL    NULL,               -- 0..100 (si DUAL)
+  IsDefault  INTEGER NOT NULL DEFAULT 0, -- 0/1
+  Body       TEXT    NOT NULL            -- texte lisible
+);";
+                cmd.ExecuteNonQuery();
+            }
+
             // Seed 1 ligne si vide
             using (var check = cn.CreateCommand())
             {
@@ -388,6 +405,121 @@ WHERE Id=1;";
             Db.AddParam(cmd, "@tel", p.Telephone ?? "");
             Db.AddParam(cmd, "@web", p.SiteWeb ?? "");
             cmd.ExecuteNonQuery();
+        }
+
+
+        // -------- PaymentTerms CRUD --------
+        public List<PaymentTerm> GetPaymentTerms()
+        {
+            var list = new List<PaymentTerm>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"SELECT Id, Name, Mode, SimpleDue, OrderPct, IsDefault, Body
+                        FROM PaymentTerms
+                        ORDER BY IsDefault DESC, Name COLLATE NOCASE;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new PaymentTerm
+                {
+                    Id = rd.GetInt32(0),
+                    Name = rd.IsDBNull(1) ? "" : rd.GetString(1),
+                    Mode = rd.IsDBNull(2) ? "SIMPLE" : rd.GetString(2),
+                    SimpleDue = rd.IsDBNull(3) ? null : rd.GetString(3),
+                    OrderPct = rd.IsDBNull(4) ? (double?)null : rd.GetDouble(4),
+                    IsDefault = !rd.IsDBNull(5) && rd.GetInt32(5) != 0,
+                    Body = rd.IsDBNull(6) ? "" : rd.GetString(6),
+                });
+            }
+            return list;
+        }
+
+        public int InsertPaymentTerm(PaymentTerm t)
+        {
+            using var cn = Db.Open();
+            using var tx = cn.BeginTransaction();
+
+            if (t.IsDefault)
+            {
+                using var clear = cn.CreateCommand();
+                clear.CommandText = "UPDATE PaymentTerms SET IsDefault=0;";
+                clear.ExecuteNonQuery();
+            }
+
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO PaymentTerms(Name, Mode, SimpleDue, OrderPct, IsDefault, Body)
+VALUES(@n,@m,@sd,@pct,@d,@b);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@n", t.Name ?? "");
+            Db.AddParam(cmd, "@m", t.Mode ?? "SIMPLE");
+            Db.AddParam(cmd, "@sd", (object?)t.SimpleDue ?? DBNull.Value);
+            Db.AddParam(cmd, "@pct", (object?)t.OrderPct ?? DBNull.Value);
+            Db.AddParam(cmd, "@d", t.IsDefault ? 1 : 0);
+            Db.AddParam(cmd, "@b", t.Body ?? "");
+            var id = Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+
+            tx.Commit();
+            return id;
+        }
+
+        public void UpdatePaymentTerm(PaymentTerm t)
+        {
+            using var cn = Db.Open();
+            using var tx = cn.BeginTransaction();
+
+            if (t.IsDefault)
+            {
+                using var clear = cn.CreateCommand();
+                clear.CommandText = "UPDATE PaymentTerms SET IsDefault=0;";
+                clear.ExecuteNonQuery();
+            }
+
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE PaymentTerms SET
+  Name=@n, Mode=@m, SimpleDue=@sd, OrderPct=@pct, IsDefault=@d, Body=@b
+WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", t.Id);
+            Db.AddParam(cmd, "@n", t.Name ?? "");
+            Db.AddParam(cmd, "@m", t.Mode ?? "SIMPLE");
+            Db.AddParam(cmd, "@sd", (object?)t.SimpleDue ?? DBNull.Value);
+            Db.AddParam(cmd, "@pct", (object?)t.OrderPct ?? DBNull.Value);
+            Db.AddParam(cmd, "@d", t.IsDefault ? 1 : 0);
+            Db.AddParam(cmd, "@b", t.Body ?? "");
+            cmd.ExecuteNonQuery();
+
+            tx.Commit();
+        }
+
+        public void DeletePaymentTerm(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM PaymentTerms WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        public PaymentTerm? GetPaymentTermById(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"SELECT Id, Name, Mode, SimpleDue, OrderPct, IsDefault, Body
+                        FROM PaymentTerms WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            using var rd = cmd.ExecuteReader();
+            if (!rd.Read()) return null;
+            return new PaymentTerm
+            {
+                Id = rd.GetInt32(0),
+                Name = rd.IsDBNull(1) ? "" : rd.GetString(1),
+                Mode = rd.IsDBNull(2) ? "SIMPLE" : rd.GetString(2),
+                SimpleDue = rd.IsDBNull(3) ? null : rd.GetString(3),
+                OrderPct = rd.IsDBNull(4) ? (double?)null : rd.GetDouble(4),
+                IsDefault = !rd.IsDBNull(5) && rd.GetInt32(5) != 0,
+                Body = rd.IsDBNull(6) ? "" : rd.GetString(6),
+            };
         }
     }
 }
