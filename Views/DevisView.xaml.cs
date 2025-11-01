@@ -16,10 +16,12 @@ namespace VorTech.App.Views
         private readonly ArticleService _articles = new ArticleService();
         private readonly ClientService _clients = new ClientService();
         private readonly BankAccountService _bank = new BankAccountService();
+        private readonly SettingsCatalogService _catalog = new SettingsCatalogService();
 
         private Devis? _current;
         private List<DevisLigne> _lines = new();
         private List<DevisAnnexe> _annexes = new();
+        private List<AnnexUi> _annexesUi = new();
 
         public DevisView()
         {
@@ -76,6 +78,7 @@ namespace VorTech.App.Views
             _current = _devis.GetById(id);
             _lines = _devis.GetLines(id);
             _annexes = _devis.GetAnnexes(id);
+            RefreshAnnexListUi();
             BindCurrent();
         }
 
@@ -86,10 +89,9 @@ namespace VorTech.App.Views
             try { CmbPayment.SelectedValue = _current?.PaymentTermsId; } catch { }
             DataContext = _current;
             GridLines.ItemsSource = _lines;
-            ListAnnexes.ItemsSource = _annexes;
             CmbPayment.SelectedValue = _current?.PaymentTermsId;
             RecalcCostsUi();
-
+            RefreshAnnexListUi();
         }
 
         private void SelectClient_Click(object sender, RoutedEventArgs e)
@@ -351,7 +353,7 @@ namespace VorTech.App.Views
                 _current.ClientSociete, _current.ClientNomPrenom,
                 _current.ClientAdresseL1, _current.ClientCodePostal, _current.ClientVille,
                 _current.ClientEmail, _current.ClientTelephone);
-            
+
             // 2.bis) Sauver les modalités (snapshot)
             int? paymentId = null;
             try
@@ -435,6 +437,77 @@ namespace VorTech.App.Views
             // recharger l’objet et rebinder l’UI (texte/plan mis à jour)
             _current = _devis.GetById(_current.Id);
             BindCurrent();
+        }
+
+        // Gestion des annexes
+        // 1) Ajouter depuis le catalogue
+        private void BtnAddAnnexFromCatalog_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId(); // crée l'ID si brouillon
+
+            // lire le catalogue d’annexes (Réglages)
+            var cat = _catalog.GetAnnexCatalog(); // (Id, Nom, CheminRelatif, Actif)
+
+            // petite fenêtre multi-sélection
+            var w = new AnnexPickerWindow(cat) { Owner = Window.GetWindow(this) };
+            if (w.ShowDialog() != true) return;
+
+            // attacher chaque PDF sélectionné
+            foreach (var id in w.SelectedIds)
+            {
+                var a = cat.Find(x => x.Id == id);
+                if (a.Id > 0 && a.Actif)
+                    _devis.AttachAnnexPdf(_current.Id, a.CheminRelatif, 0);   // ordre ignoré
+            }
+
+            // rafraîchir la liste
+            _annexes = _devis.GetAnnexes(_current.Id);
+            RefreshAnnexListUi();
+        }
+
+        // 2) Retirer une annexe déjà attachée
+        private void RemoveAnnex_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId();
+
+            if (sender is Button b && b.Tag is int annexeId)
+            {
+                _devis.RemoveAnnexe(annexeId);
+                _annexes = _devis.GetAnnexes(_current.Id);
+                RefreshAnnexListUi();
+            }
+        }
+        private class AnnexUi
+        {
+            public int Id { get; set; }
+            public string? Chemin { get; set; }
+            public string Display { get; set; } = "";
+        }
+
+        private void RefreshAnnexListUi()
+        {
+            // Lire le catalogue (Nom + CheminRelatif)
+            var cat = _catalog.GetAnnexCatalog(); // (Id, Nom, CheminRelatif, Actif)
+
+            _annexesUi = new List<AnnexUi>();
+            foreach (var a in _annexes)
+            {
+                string display = a.Chemin ?? "";
+                // Cherche un Nom correspondant au CheminRelatif
+                var match = cat.Find(c => string.Equals(c.CheminRelatif?.Replace("\\", "/"),
+                                                       (a.Chemin ?? "").Replace("\\", "/"),
+                                                       StringComparison.OrdinalIgnoreCase));
+                if (match.Id > 0 && !string.IsNullOrWhiteSpace(match.Nom))
+                    display = match.Nom; // on montre le Nom réglages
+                else
+                    display = System.IO.Path.GetFileName(a.Chemin ?? display); // fallback propre
+
+                _annexesUi.Add(new AnnexUi { Id = a.Id, Chemin = a.Chemin, Display = display });
+            }
+
+            ListAnnexes.ItemsSource = _annexesUi;
         }
     }
 }

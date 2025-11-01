@@ -725,10 +725,62 @@
                                         </DataGrid>
                                     </DockPanel>
                                 </GroupBox>
+                                <!-- Annexes Devis -->
+                                <GroupBox Header="Annexes" Margin="0,8,0,0">
+                                    <Grid Margin="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Tableau des annexes -->
+                                        <DataGrid x:Name="GridAnnexes"
+                                                  Grid.Column="0"
+                                                  Margin="0,0,8,0"
+                                                  AutoGenerateColumns="False"
+                                                  CanUserAddRows="False"
+                                                  CanUserDeleteRows="False"
+                                                  IsReadOnly="True"
+                                                  HeadersVisibility="Column"
+                                                  SelectionMode="Single">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Nom"
+                                                      Binding="{Binding Nom}"
+                                                      Width="1.8*"
+                                                      MinWidth="220" />
+                                                <DataGridTextColumn Header="Chemin relatif"
+                                                      Binding="{Binding CheminRelatif}"
+                                                      Width="2.2*"
+                                                      MinWidth="260" />
+                                                <DataGridCheckBoxColumn Header="Actif" Width="70" Binding="{Binding Actif}">
+                                                    <DataGridCheckBoxColumn.ElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                            <Setter Property="IsHitTestVisible" Value="False"/>
+                                                            <Setter Property="Focusable" Value="False"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.ElementStyle>
+                                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                                        <Style TargetType="CheckBox">
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                                </DataGridCheckBoxColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <!-- Actions -->
+                                        <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Top">
+                                            <Button x:Name="BtnAnnexAdd"    Content="Ajouter PDF..." Margin="0,0,0,8" Click="BtnAnnexAdd_Click"/>
+                                            <Button x:Name="BtnAnnexRename" Content="Renommer"       Margin="0,0,0,8" Click="BtnAnnexRename_Click"/>
+                                            <Button x:Name="BtnAnnexDelete" Content="Supprimer"                      Click="BtnAnnexDelete_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </GroupBox>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
-
                     <!-- Onglet 2 : PREVIEW (placeholder, à remplir plus tard) -->
                     <TabItem x:Name="TabPreview" Header="Aperçu PDF (venir)">
                         <Grid Background="{DynamicResource Bg}">

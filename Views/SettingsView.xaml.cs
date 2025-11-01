@@ -21,6 +21,7 @@ namespace VorTech.App.Views
         private ObservableCollection<PaymentTermVM> _pay = new();
         private readonly INumberingService _num = new NumberingService();
         private readonly BankAccountService _bank = new BankAccountService();
+        private System.Collections.ObjectModel.ObservableCollection<AnnexVM> _annexes = new();
 
         public SettingsView()
         {
@@ -249,6 +250,23 @@ namespace VorTech.App.Views
             GridPay.ItemsSource = _pay;
         }
 
+        // Annexe DEVIS
+        private void LoadAnnexCatalog()
+        {
+            _annexes = new System.Collections.ObjectModel.ObservableCollection<AnnexVM>(
+                _catalogs.GetAnnexCatalog().ConvertAll(x => new AnnexVM { Id = x.Id, Nom = x.Nom, CheminRelatif = x.CheminRelatif, Actif = x.Actif })
+            );
+            GridAnnexes.ItemsSource = _annexes;
+        }
+
+        private class AnnexVM
+        {
+            public int Id { get; set; }
+            public string Nom { get; set; } = "";
+            public string CheminRelatif { get; set; } = "";
+            public bool Actif { get; set; }
+        }
+
         private static void SelectByContent(ComboBox cb, string? value, string fallback = "MONTHLY")
         {
             var wanted = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
@@ -421,6 +439,7 @@ namespace VorTech.App.Views
             // aller sur l'onglet Paramètres et charger les valeurs
             if (TabsDocs != null) TabsDocs.SelectedItem = TabParams;
             LoadDocs();
+            LoadAnnexCatalog();
         }
         private void LoadDocs()
         {
@@ -486,5 +505,55 @@ namespace VorTech.App.Views
                 Body = this.Body
             };
         }
+
+        // Bouton pour Annexes
+        private void BtnAnnexAdd_Click(object sender, RoutedEventArgs e)
+        {
+            // 1) dialog fichier
+            var ofd = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "PDF (*.pdf)|*.pdf",
+                Multiselect = false
+            };
+            if (ofd.ShowDialog() != true) return;
+
+            // 2) copie dans Assets/Annexes
+            var fileName = System.IO.Path.GetFileName(ofd.FileName);
+            var targetDir = System.IO.Path.Combine(Paths.AssetsDir, "Annexes");
+            System.IO.Directory.CreateDirectory(targetDir);
+            var targetFull = System.IO.Path.Combine(targetDir, fileName);
+
+            // évite écrasement bête
+            if (!System.IO.File.Exists(targetFull))
+                System.IO.File.Copy(ofd.FileName, targetFull, false);
+
+            var rel = System.IO.Path.Combine("Annexes", fileName).Replace("\\", "/");
+
+            // 3) insert en BDD
+            var id = _catalogs.InsertAnnex(fileName, rel, true);
+
+            // 4) refresh UI
+            LoadAnnexCatalog();
+        }
+
+        private void BtnAnnexRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridAnnexes.SelectedItem is not AnnexVM a) return;
+            var newName = Microsoft.VisualBasic.Interaction.InputBox("Nouveau nom :", "Renommer l'annexe", a.Nom);
+            if (string.IsNullOrWhiteSpace(newName) || newName.Trim() == a.Nom) return;
+            _catalogs.UpdateAnnex(a.Id, newName.Trim());
+            LoadAnnexCatalog();
+        }
+
+        private void BtnAnnexDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridAnnexes.SelectedItem is not AnnexVM a) return;
+            if (MessageBox.Show($"Supprimer « {a.Nom} » du catalogue ? (le fichier reste sur disque)",
+                "Confirmer", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
+            _catalogs.DeleteAnnex(a.Id);
+            LoadAnnexCatalog();
+        }
+
     }
 }

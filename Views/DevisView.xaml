@@ -450,30 +450,35 @@
                         <Button Content="Éditer le texte (bas)"  Click="EditNoteBas_Click"  Padding="10,6"/>
                     </StackPanel>
                 </GroupBox>
-                <GroupBox Header="Annexes disponibles" Margin="0,0,0,12"
-                        Background="#FFF7F7F7" BorderBrush="#FFDDDDDD" BorderThickness="1">
+                <GroupBox Header="Annexes (attachées au devis)" Margin="0,0,0,12">
                     <StackPanel Margin="8">
-                        <CheckBox Content="Planche produits (images + titres)"/>
-                        <Separator Margin="0,8,0,8"/>
-                        <TextBlock Text="Sélection des annexes :" FontWeight="Bold"/>
-                        <ListBox x:Name="ListAnnexes" Height="220" ItemsSource="{Binding Annexes}"
-                                 Background="#FF2B2B2B" BorderBrush="#FF404040" Foreground="#FFEFEFEF"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                        <!-- Liste des annexes déjà attachées au devis -->
+                        <ListBox x:Name="ListAnnexes"
+                             Height="220"
+                             Background="{DynamicResource Panel}"
+                             BorderBrush="{DynamicResource Border}"
+                             Foreground="{DynamicResource Fore}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel>
-                                        <TextBlock Text="{Binding Chemin}" VerticalAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                            <Button Content="↑" Width="28" Margin="4,0"/>
-                                            <Button Content="↓" Width="28" Margin="4,0"/>
-                                            <Button Content="Retirer" Margin="4,0"/>
-                                        </StackPanel>
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock Text="{Binding Display}" VerticalAlignment="Center"/>
+                                        <Button Content="Retirer"
+                                            DockPanel.Dock="Right"
+                                            Margin="8,0,0,0"
+                                            Padding="8,2"
+                                            Tag="{Binding Id}"
+                                            Click="RemoveAnnex_Click"/>
                                     </DockPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                            <Button Content="+ Ajouter PDF"/>
+                        <!-- Actions -->
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="BtnAddAnnexFromCatalog"
+                              Content="Ajouter depuis le catalogue…"
+                              Click="BtnAddAnnexFromCatalog_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>

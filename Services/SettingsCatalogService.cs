@@ -117,6 +117,19 @@ CREATE TABLE IF NOT EXISTS BankAccounts(
                 cmd.ExecuteNonQuery();
             }
 
+            // --- Annexes (catalogue) ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS Annexes(
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  Nom           TEXT    NOT NULL,
+  CheminRelatif TEXT    NOT NULL,   -- ex: 'Annexes/ma-brochure.pdf'
+  Actif         INTEGER NOT NULL DEFAULT 1
+);";
+                cmd.ExecuteNonQuery();
+            }
+
             // Seed TVA si vide
             using (var check = cn.CreateCommand())
             {
@@ -520,6 +533,51 @@ WHERE Id=@id;";
                 IsDefault = !rd.IsDBNull(5) && rd.GetInt32(5) != 0,
                 Body = rd.IsDBNull(6) ? "" : rd.GetString(6),
             };
+        }
+
+        // -------- ANNEXES (catalogue) --------
+        public List<(int Id, string Nom, string CheminRelatif, bool Actif)> GetAnnexCatalog()
+        {
+            var list = new List<(int, string, string, bool)>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "SELECT Id, Nom, CheminRelatif, Actif FROM Annexes ORDER BY Nom COLLATE NOCASE;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+                list.Add((rd.GetInt32(0), rd.GetString(1), rd.GetString(2), rd.GetInt32(3) != 0));
+            return list;
+        }
+
+        public int InsertAnnex(string nom, string cheminRelatif, bool actif = true)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO Annexes(Nom, CheminRelatif, Actif) VALUES(@n,@p,@a);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@n", nom ?? "");
+            Db.AddParam(cmd, "@p", cheminRelatif ?? "");
+            Db.AddParam(cmd, "@a", actif ? 1 : 0);
+            return Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        public void UpdateAnnex(int id, string nom)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "UPDATE Annexes SET Nom=@n WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            Db.AddParam(cmd, "@n", nom ?? "");
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteAnnex(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM Annexes WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
         }
     }
 }

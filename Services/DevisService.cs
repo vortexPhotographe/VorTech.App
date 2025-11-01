@@ -780,5 +780,14 @@ WHERE Id=@id;";
             Ordre = Convert.ToInt32(r["Ordre"]),
             ConfigJson = r["ConfigJson"]?.ToString()
         };
+
+        public void RemoveAnnexe(int annexeId)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM DevisAnnexes WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", annexeId);
+            cmd.ExecuteNonQuery();
+        }
     }
 }
