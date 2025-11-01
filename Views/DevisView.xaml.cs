@@ -22,6 +22,7 @@ namespace VorTech.App.Views
         private List<DevisLigne> _lines = new();
         private List<DevisAnnexe> _annexes = new();
         private List<AnnexUi> _annexesUi = new();
+        private List<DevisOption> _options = new();
 
         public DevisView()
         {
@@ -78,6 +79,7 @@ namespace VorTech.App.Views
             _current = _devis.GetById(id);
             _lines = _devis.GetLines(id);
             _annexes = _devis.GetAnnexes(id);
+            _options = _devis.GetOptions(id);
             RefreshAnnexListUi();
             BindCurrent();
         }
@@ -90,6 +92,7 @@ namespace VorTech.App.Views
             DataContext = _current;
             GridLines.ItemsSource = _lines;
             CmbPayment.SelectedValue = _current?.PaymentTermsId;
+            GridOptions.ItemsSource = _options;
             RecalcCostsUi();
             RefreshAnnexListUi();
         }
@@ -508,6 +511,45 @@ namespace VorTech.App.Views
             }
 
             ListAnnexes.ItemsSource = _annexesUi;
+        }
+
+        // Gestion des options
+        private void BtnAddOption_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId();
+
+            if (_options.Count >= 3)
+            {
+                MessageBox.Show("Vous ne pouvez pas ajouter plus de 3 options.", "Limite atteinte",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // On réutilise TON ArticlePickerWindow
+            var w = new ArticlePickerWindow { Owner = Window.GetWindow(this) };
+            if (w.ShowDialog() == true)
+            {
+                var articleId = w.SelectedArticleId;
+                int? variantId = w.SelectedVariantId;
+
+                _devis.AddOptionFromArticle(_current.Id, articleId, variantId);
+
+                _options = _devis.GetOptions(_current.Id);
+                GridOptions.ItemsSource = _options;
+            }
+        }
+
+        private void BtnDeleteOption_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null) return;
+            EnsureCurrentId();
+
+            if (GridOptions.SelectedItem is not DevisOption opt) return;
+
+            _devis.DeleteOption(opt.Id);
+            _options = _devis.GetOptions(_current.Id);
+            GridOptions.ItemsSource = _options;
         }
     }
 }

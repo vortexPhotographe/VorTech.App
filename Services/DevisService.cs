@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.IO;
+using System.Runtime.Versioning;
 using System.Text.Json;
 using VorTech.App.Models;
 using static QRCoder.PayloadGenerator.SwissQrCode;
@@ -58,7 +59,20 @@ CREATE TABLE IF NOT EXISTS DevisAnnexes (
   ConfigJson TEXT NULL,
   FOREIGN KEY(DevisId) REFERENCES Devis(Id)
 );
-CREATE INDEX IF NOT EXISTS IX_DevisAnnexes_Devis ON DevisAnnexes(DevisId);";
+CREATE INDEX IF NOT EXISTS IX_DevisAnnexes_Devis ON DevisAnnexes(DevisId);
+
+CREATE TABLE IF NOT EXISTS DevisOptions (
+  Id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  DevisId    INTEGER NOT NULL,
+  ArticleId  INTEGER NULL,
+  VarianteId INTEGER NULL,
+  Libelle    TEXT    NOT NULL,
+  Prix       REAL    NOT NULL DEFAULT 0,
+  FOREIGN KEY(DevisId) REFERENCES Devis(Id)
+);
+CREATE INDEX IF NOT EXISTS IX_DevisOptions_Devis ON DevisOptions(DevisId);";
+
+
             cmd.ExecuteNonQuery();
             try
             {
@@ -450,6 +464,7 @@ WHERE Id=@id;";
             Db.AddParam(cmd, "@id", id);
             cmd.ExecuteNonQuery();
         }
+        [SupportedOSPlatform("windows")]
         public string Emit(int devisId, INumberingService numbering)
         {
             if (devisId <= 0) throw new ArgumentException("devisId invalide");
@@ -616,6 +631,7 @@ WHERE Id=@id;";
             // --- 5) Génération PDF (v1 micro — mention 293B auto côté modèle)
             // InvoicePdf.RenderSimpleInvoice(outfile, number, clientName, clientAddress, lines, showMention293B)
             // cf. InvoicePdf.cs
+
             InvoicePdf.RenderSimpleInvoice(
                 outputPath: outfile,
                     numero: numero,
@@ -633,7 +649,8 @@ WHERE Id=@id;";
                     noteTop: noteTop,
                     noteBottom: noteBottom,
                     clientPhone: phone,
-                    clientEmail: email
+                    clientEmail: email,
+                    devisId: devisId
             );
 
             tr.Commit();
@@ -702,6 +719,78 @@ ORDER BY Date DESC, Id DESC;";
             using var rd = cmd.ExecuteReader();
             while (rd.Read()) list.Add(MapAnnexe(rd));
             return list;
+        }
+
+        // Options sur devis
+        public int AddOptionFromArticle(int devisId, int articleId, int? varianteId = null)
+        {
+            var artSvc = new ArticleService();
+
+            // 1) lire article / variante (packs inclus via variantes dans le picker)
+            var art = artSvc.GetById(articleId);
+            if (art == null) throw new InvalidOperationException("Article introuvable");
+
+            string libelle;
+            decimal prix;
+
+            if (varianteId.HasValue)
+            {
+                var v = artSvc.GetVariantById(varianteId.Value);
+                if (v == null) throw new InvalidOperationException("Variante introuvable");
+                libelle = string.IsNullOrWhiteSpace(v.Nom) ? art.Libelle ?? $"Article #{art.Id}" : $"{art.Libelle} {v.Nom}";
+                prix = v.PrixVenteHT;
+            }
+            else
+            {
+                libelle = art.Libelle ?? $"Article #{art.Id}";
+                prix = art.PrixVenteHT;
+            }
+
+            // 2) snapshot en BDD
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO DevisOptions(DevisId, ArticleId, VarianteId, Libelle, Prix)
+VALUES(@D,@A,@V,@L,@P);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@D", devisId);
+            Db.AddParam(cmd, "@A", (object?)articleId ?? DBNull.Value);
+            Db.AddParam(cmd, "@V", (object?)varianteId ?? DBNull.Value);
+            Db.AddParam(cmd, "@L", libelle);
+            Db.AddParam(cmd, "@P", prix);
+            return Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        public List<DevisOption> GetOptions(int devisId)
+        {
+            var list = new List<DevisOption>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "SELECT Id, DevisId, ArticleId, VarianteId, Libelle, Prix FROM DevisOptions WHERE DevisId=@D ORDER BY Id;";
+            Db.AddParam(cmd, "@D", devisId);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new DevisOption
+                {
+                    Id = Convert.ToInt32(rd["Id"]),
+                    DevisId = Convert.ToInt32(rd["DevisId"]),
+                    ArticleId = rd["ArticleId"] == DBNull.Value ? (int?)null : Convert.ToInt32(rd["ArticleId"]),
+                    VarianteId = rd["VarianteId"] == DBNull.Value ? (int?)null : Convert.ToInt32(rd["VarianteId"]),
+                    Libelle = rd["Libelle"]?.ToString() ?? "",
+                    Prix = Convert.ToDecimal(rd["Prix"], System.Globalization.CultureInfo.InvariantCulture)
+                });
+            }
+            return list;
+        }
+
+        public void DeleteOption(int optionId)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM DevisOptions WHERE Id=@Id;";
+            Db.AddParam(cmd, "@Id", optionId);
+            cmd.ExecuteNonQuery();
         }
 
         // Corection soucis de nom de service

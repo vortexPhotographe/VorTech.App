@@ -55,4 +55,14 @@ namespace VorTech.App.Models
         public int Ordre { get; set; }
         public string? ConfigJson { get; set; }
     }
+
+    public class DevisOption
+    {
+        public int Id { get; set; }
+        public int DevisId { get; set; }
+        public int? ArticleId { get; set; }
+        public int? VarianteId { get; set; }
+        public string Libelle { get; set; } = "";
+        public decimal Prix { get; set; }
+    }
 }

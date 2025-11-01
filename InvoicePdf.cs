@@ -8,10 +8,12 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.Versioning;
 using VorTech.App;          // Paths
+using VorTech.App.Models;
 using VorTech.App.Services; // ConfigService, SettingsCatalogService
 
 namespace VorTech.App
 {
+    [SupportedOSPlatform("windows")]
     public static class InvoicePdf
     {
         // Surcharge existante (compat)
@@ -22,8 +24,9 @@ namespace VorTech.App
             string clientAddr,
             IReadOnlyList<(string designation, double qty, double pu)> lines,
             bool showMention293B,
-            string? clientPhone = null,   // ← AJOUT
-            string? clientEmail = null    // ← AJOUT
+            string? clientPhone = null,
+            string? clientEmail = null,
+            int? devisId = null
         )
         {
             RenderSimpleInvoice(
@@ -36,7 +39,8 @@ namespace VorTech.App
                 noteBottom: null,
                 devisDateText: null,
                 clientPhone: clientPhone,
-                clientEmail: clientEmail
+                clientEmail: clientEmail,
+                devisId: devisId
             );
         }
 
@@ -60,7 +64,8 @@ namespace VorTech.App
             string? noteBottom = null,
             string? devisDateText = null,
             string? clientPhone = null,
-            string? clientEmail = null
+            string? clientEmail = null,
+            int? devisId = null
         )
         {
             var cfg = ConfigService.Load();
@@ -355,54 +360,102 @@ namespace VorTech.App
                 pTotVal.Format.Font.Bold = true;
             }
 
-            // (7) Mention micro
-            if (showMention293B)
+            // (7–9) Mention 293B + Texte bas (gauche) ET Signature (droite) dans une même grille 2 colonnes
             {
-                var p = sec.AddParagraph("TVA non applicable, article 293B du code général des impôts.");
-                p.Style = "SmallItalic";
-                p.Format.SpaceBefore = Unit.FromMillimeter(3);
-            }
+                var side = sec.AddTable();
+                side.Borders.Visible = false;
+                side.AddColumn(Unit.FromMillimeter(120)); // zone texte (gauche)
+                side.AddColumn(Unit.FromMillimeter(80));  // zone signature (droite)
 
-            // (8) Texte libre bas (gauche)
-            if (!string.IsNullOrWhiteSpace(noteBottom))
-            {
-                var p = sec.AddParagraph(noteBottom);
-                p.Style = "Small";
-                p.Format.SpaceBefore = Unit.FromMillimeter(2);
-                p.Format.SpaceAfter = Unit.FromMillimeter(2);
-            }
+                // Ligne haute : contenu texte à gauche + titre signature à droite
+                var rTop = side.AddRow();
 
-            // (9) Signature — cadre 74mm x 15.9mm (droite), bien visible
-            {
-                var sig = sec.AddTable();
-                sig.Borders.Visible = false;
-                sig.AddColumn(Unit.FromMillimeter(120)); // texte à gauche
-                sig.AddColumn(Unit.FromMillimeter(80));  // cadre à droite
+                // (1) + (2) dans la cellule gauche
+                var left = rTop.Cells[0];
+                if (showMention293B)
+                {
+                    var p = left.AddParagraph("TVA non applicable, article 293B du code général des impôts.");
+                    p.Style = "SmallItalic";
+                    p.Format.SpaceAfter = Unit.FromMillimeter(2);
+                }
+                if (!string.IsNullOrWhiteSpace(noteBottom))
+                {
+                    var p = left.AddParagraph(noteBottom);
+                    p.Style = "Small";
+                    p.Format.SpaceBefore = Unit.FromMillimeter(2);
+                }
 
-                var r1 = sig.AddRow();
-                r1.Cells[0].AddParagraph(" ");
-                var title = r1.Cells[1].AddParagraph("Cachet ou signature date et mention\n'Bon pour accord'");
+                // Titre du bloc signature à droite
+                var right = rTop.Cells[1];
+                var title = right.AddParagraph("Cachet ou signature date et mention\n'Bon pour accord'");
                 title.Style = "Small";
                 title.Format.Alignment = ParagraphAlignment.Center;
                 title.Format.SpaceAfter = Unit.FromMillimeter(3);
 
-                var r2 = sig.AddRow();
-                r2.Height = Unit.FromMillimeter(30.9);
-                r2.HeightRule = RowHeightRule.Exactly;
-                r2.Cells[0].AddParagraph(" ");
+                // Ligne basse : cadre de signature (hauteur fixe) à droite
+                var rBox = side.AddRow();
+                rBox.Height = Unit.FromMillimeter(30.9);
+                rBox.HeightRule = RowHeightRule.Exactly;
+                rBox.Cells[0].AddParagraph(" "); // cellule gauche vide (pas de grand blanc autonome)
 
-                var sigCell = r2.Cells[1];
+                var sigCell = rBox.Cells[1];
                 sigCell.Borders.Color = Colors.Black;
                 sigCell.Borders.Left.Width = 1.25;
                 sigCell.Borders.Top.Width = 1.25;
                 sigCell.Borders.Right.Width = 1.25;
                 sigCell.Borders.Bottom.Width = 1.25;
-                sigCell.Shading.Color = Colors.White;     // masque d’éventuels filets en dessous
-                sigCell.AddParagraph("\u00A0");           // petit contenu non-vide pour forcer le dessin
+                sigCell.Shading.Color = Colors.White;
+                sigCell.AddParagraph("\u00A0"); // contenu non vide
             }
 
-            // (10) En Options — rien
+            // (10) En options — tableau simple "Désignation | Prix | [ ]"
+            var options = devisId.HasValue ? new DevisService().GetOptions(devisId.Value) : new List<DevisOption>();
+            if (options.Count > 0)
+            {
+                // Titre
+                var title = sec.AddParagraph("En options");
+                title.Style = "H-Title";
+                title.Format.SpaceBefore = Unit.FromMillimeter(6);
+                title.Format.SpaceAfter = Unit.FromMillimeter(3);
 
+                // Tableau options (3 colonnes)
+                var opt = sec.AddTable();
+                opt.Borders.Width = 0.25;
+                opt.Borders.Color = Colors.Gray;
+                opt.Borders.Left.Width = 0;
+                opt.Borders.Right.Width = 0;
+
+                opt.AddColumn(Unit.FromMillimeter(150)); // Désignation
+                opt.AddColumn(Unit.FromMillimeter(30));  // Prix
+                opt.AddColumn(Unit.FromMillimeter(15));  // case
+
+                // En-tête
+                var oh = opt.AddRow();
+                oh.HeadingFormat = true;
+                oh.Shading.Color = Accent;
+                oh.Cells[0].AddParagraph("Désignation");
+                oh.Cells[1].AddParagraph("Prix");
+                oh.Cells[2].AddParagraph(" ");
+                for (int i = 0; i < oh.Cells.Count; i++)
+                {
+                    var c = oh.Cells[i];
+                    c.Format.Font.Color = Colors.White;
+                    c.Format.Font.Bold = true;
+                    if (i == 1) c.Format.Alignment = ParagraphAlignment.Right;
+                    if (i == 2) c.Format.Alignment = ParagraphAlignment.Center;
+                }
+                oh.Borders.Bottom.Color = Accent;
+                oh.Borders.Bottom.Width = 1;
+
+                // Lignes
+                foreach (var o in options)
+                {
+                    var r = opt.AddRow();
+                    r.Cells[0].AddParagraph(o.Libelle ?? "");
+                    r.Cells[1].AddParagraph(o.Prix.ToString("N2", culture) + " €").Format.Alignment = ParagraphAlignment.Right;
+                    r.Cells[2].AddParagraph("[ ]").Format.Alignment = ParagraphAlignment.Center;
+                }
+            }
 
             // Helper pied : ajoute "Label : valeur" en centrant et en insérant "  -  " entre items
             void addCenteredPair(Paragraph p, string label, string? value, ref bool first)
@@ -458,7 +511,8 @@ namespace VorTech.App
                 addCenteredPair(p4, "BIC", bic, ref f4);
             }
 
-            // Render
+            // === CONCAT DES ANNEXES et RENDU ===
+            // Rendu vers un fichier temporaire
             var outDir = Path.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(outDir))
                 Directory.CreateDirectory(outDir);
@@ -466,7 +520,50 @@ namespace VorTech.App
             var renderer = new PdfDocumentRenderer();
             renderer.Document = doc;
             renderer.RenderDocument();
-            renderer.PdfDocument.Save(outputPath);
+
+            // on sauve d'abord un "core" temporaire
+            var corePath = Path.Combine(Paths.TempDir, $"devis-core-{Guid.NewGuid():N}.pdf");
+            renderer.PdfDocument.Save(corePath);
+
+            // Concat annexes → outputPath
+            var annexes = devisId.HasValue ? new DevisService().GetAnnexes(devisId.Value) : new List<DevisAnnexe>();
+            if (annexes.Count > 0)
+            {
+                ConcatPdfFiles(
+                    files: BuildAnnexFileList(corePath, annexes),
+                    outputPath: outputPath
+                );
+                try { File.Delete(corePath); } catch { /* ignore */ }
+            }
+            else
+            {
+                // pas d'annexe : on copie le core directement comme fichier final
+                File.Copy(corePath, outputPath, overwrite: true);
+                try { File.Delete(corePath); } catch { /* ignore */ }
+            }
+        }
+        private static List<string> BuildAnnexFileList(string corePath, List<DevisAnnexe> annexes)
+        {
+            var files = new List<string> { corePath };
+            foreach (var a in annexes)
+            {
+                if (string.IsNullOrWhiteSpace(a.Chemin)) continue;
+                var full = Path.Combine(Paths.AssetsDir, a.Chemin.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                if (File.Exists(full)) files.Add(full);
+            }
+            return files;
+        }
+
+        private static void ConcatPdfFiles(List<string> files, string outputPath)
+        {
+            using var outDoc = new PdfSharp.Pdf.PdfDocument();
+            foreach (var f in files)
+            {
+                using var src = PdfSharp.Pdf.IO.PdfReader.Open(f, PdfSharp.Pdf.IO.PdfDocumentOpenMode.Import);
+                for (int i = 0; i < src.PageCount; i++)
+                    outDoc.AddPage(src.Pages[i]);
+            }
+            outDoc.Save(outputPath);
         }
     }
 }
