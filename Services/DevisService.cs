@@ -122,6 +122,14 @@ CREATE INDEX IF NOT EXISTS IX_DevisOptions_Devis ON DevisOptions(DevisId);";
             }
             catch { /* déjà là */ }
 
+            try
+            {
+                using var addSent = cn.CreateCommand();
+                addSent.CommandText = "ALTER TABLE Devis ADD COLUMN SentAt TEXT NULL;";
+                addSent.ExecuteNonQuery();
+            }
+            catch { /* déjà là */ }
+
         }
 
         public int CreateDraft(int? clientId, Client? s = null)
@@ -992,6 +1000,17 @@ WHERE Id=@id;";
             using var cmd = cn.CreateCommand();
             cmd.CommandText = "DELETE FROM DevisAnnexes WHERE Id=@id;";
             Db.AddParam(cmd, "@id", annexeId);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Gestion statut du devis 
+        public void MarkEmailSent(int devisId)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "UPDATE Devis SET SentAt=@ts WHERE Id=@id;";
+            Db.AddParam(cmd, "@ts", DateTime.Now.ToString("s"));
+            Db.AddParam(cmd, "@id", devisId);
             cmd.ExecuteNonQuery();
         }
     }

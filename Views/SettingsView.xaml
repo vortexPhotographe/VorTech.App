@@ -355,7 +355,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <!-- Colonne gauche -->
-                        <ColumnDefinition Width="580"/>
+                        <ColumnDefinition Width="650"/>
                         <!-- Colonne droite (email) ; mets * si tu préfères -->
                     </Grid.ColumnDefinitions>
 
@@ -434,6 +434,7 @@
                             <GroupBox Header="Comptes e-mail">
                                 <DockPanel>
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8" HorizontalAlignment="Right">
+                                        <Button Content="Tester…" Click="BtnTestEmailAccount_Click"/>
                                         <Button Content="Ajouter…"  Click="BtnAddEmailAccount_Click"  Margin="0,0,8,0"/>
                                         <Button Content="Modifier…" Click="BtnEditEmailAccount_Click" Margin="0,0,8,0"/>
                                         <Button Content="Supprimer" Click="BtnDeleteEmailAccount_Click"/>

@@ -128,6 +128,28 @@
 
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="200,0">
                 <Button Content="Enregistrer" Click="Save_Click" Margin="4,0"/>
+                <Button x:Name="BtnSendMail"
+                    Content="Envoyer par e-mail"
+                    Click="BtnSendMail_Click"
+                    Margin="4,0"
+                    ToolTip="Envoie le PDF du devis par e-mail au client">
+                    <Button.Style>
+                        <!-- IMPORTANT : BasedOn pour hériter du style global des boutons -->
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <!-- Cache si Numero est null -->
+                                <DataTrigger Binding="{Binding Numero}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <!-- Cache si Numero est vide -->
+                                <DataTrigger Binding="{Binding Numero}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button x:Name="BtnRegenPdf"
                         Content="Générer PDF"
                         Padding="12,6"

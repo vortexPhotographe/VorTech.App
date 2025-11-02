@@ -458,9 +458,7 @@ WHERE Id=1;";
             var list = new List<EmailAccount>();
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
-            cmd.CommandText = @"SELECT Id, DisplayName, Address, SmtpHost, SmtpPort, UseSsl, Username, Password, IsDefault
-                        FROM EmailAccounts
-                        ORDER BY IsDefault DESC, DisplayName COLLATE NOCASE;";
+            cmd.CommandText = @"SELECT Id, DisplayName, Address, SmtpHost, SmtpPort, UseSsl, Username, Password, IsDefault FROM EmailAccounts ORDER BY IsDefault DESC, Id;";
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {
@@ -557,9 +555,7 @@ WHERE Id=@id;";
             var list = new List<EmailTemplate>();
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
-            cmd.CommandText = @"SELECT Id, Name, Subject, Body, IsHtml
-                        FROM EmailTemplates
-                        ORDER BY Name COLLATE NOCASE;";
+            cmd.CommandText = @"SELECT Id, Name, Subject, Body, IsHtml FROM EmailTemplates ORDER BY Id;";
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {

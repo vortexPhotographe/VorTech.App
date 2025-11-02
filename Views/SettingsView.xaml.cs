@@ -148,6 +148,36 @@ namespace VorTech.App.Views
                 IsDefault = isDef
             };
         }
+        private async void BtnTestEmailAccount_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridEmailAccounts.SelectedItem is not EmailAccount acc)
+            {
+                MessageBox.Show("Sélectionnez un compte e-mail.", "Test e-mail", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var catalogs = new SettingsCatalogService();
+            var company = catalogs.GetCompanyProfile();
+            var to = string.IsNullOrWhiteSpace(company.Email) ? acc.Address : company.Email;
+
+            var svc = new EmailService();
+            try
+            {
+                await svc.SendAndLogAsync(
+                    acc,
+                    to,
+                    "Test configuration e-mail",
+                    "Message de test : tout est OK ✅",
+                    false,
+                    null,
+                    "TEST:SETTINGS"
+                );
+                MessageBox.Show($"E-mail de test envoyé à {to}.", "Test e-mail", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Échec du test e-mail : " + ex.Message, "Test e-mail", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private void BtnAddEmailAccount_Click(object sender, RoutedEventArgs e)
         {

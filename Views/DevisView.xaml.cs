@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.Versioning;
@@ -375,6 +376,87 @@ namespace VorTech.App.Views
             _current = _devis.GetById(id);
             BindCurrent();
             LoadList(SearchBox.Text?.Trim());
+        }
+
+        // Envoie Devis par Email
+        private async void BtnSendMail_Click(object sender, RoutedEventArgs e)
+        {
+            var devis = DataContext as VorTech.App.Models.Devis;
+            if (devis == null || string.IsNullOrWhiteSpace(devis.Numero))
+            {
+                MessageBox.Show("Le devis n’est pas numéroté.", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var catalogs = new SettingsCatalogService();
+
+                // 1) compte par défaut
+                var accounts = catalogs.GetEmailAccounts(); // si tu n’as pas encore ce getter -> voir NOTE plus bas
+                var account = accounts.FirstOrDefault(a => a.IsDefault) ?? accounts.FirstOrDefault();
+                if (account == null)
+                {
+                    MessageBox.Show("Aucun compte e-mail configuré (Réglages ▶ Général ▶ Comptes e-mail).", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 2) template (au besoin : le premier)
+                var templates = catalogs.GetEmailTemplates(); // idem, voir NOTE
+                var tpl = templates.FirstOrDefault();
+                if (tpl == null)
+                {
+                    MessageBox.Show("Aucun modèle e-mail n’est configuré.", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 3) placeholders
+                var company = catalogs.GetCompanyProfile();
+                var map = new Dictionary<string, string?>
+                {
+                    ["QUOTE_NUMBER"] = devis.Numero,
+                    ["COMPANY_NAME"] = company.NomCommercial,
+                    ["CLIENT_FIRSTNAME"] = (devis.ClientNomPrenom ?? "").Split(' ').FirstOrDefault() ?? "",
+                    ["QUOTE_TOTAL"] = devis.Total.ToString("0.00"),
+                    ["CURRENCY"] = "€"
+                };
+
+                var emailSvc = new EmailService();
+                var subject = emailSvc.RenderTemplate(tpl.Subject, map);
+                var body = emailSvc.RenderTemplate(tpl.Body, map);
+
+                // 4) pièce jointe : PDF du devis (déjà généré)
+                var pdfDir = System.IO.Path.Combine(Paths.DataDir, "Devis");
+                var pdfFile = System.IO.Path.Combine(pdfDir, $"{devis.Numero}.pdf");
+                if (!File.Exists(pdfFile))
+                {
+                    MessageBox.Show("Le PDF du devis n’existe pas. Générez-le d’abord.", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var to = !string.IsNullOrWhiteSpace(devis.ClientEmail)
+                           ? devis.ClientEmail!
+                           : company.Email; // fallback
+
+                // 5) envoi + log
+                await emailSvc.SendAndLogAsync(
+                    account: account,
+                    to: to,
+                    subject: subject,
+                    body: body,
+                    isHtml: tpl.IsHtml,
+                    attachmentPaths: new[] { pdfFile },
+                    context: $"DEVIS:{devis.Id}"
+                );
+
+                // 6) marquer le devis
+                new DevisService().MarkEmailSent(devis.Id);
+                MessageBox.Show("E-mail envoyé.", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Échec de l’envoi e-mail : " + ex.Message, "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // SUPRESSION Devis
