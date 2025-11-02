@@ -339,83 +339,147 @@
         <!-- PANELS -->
         <Grid Grid.Column="2">
 
-            <!-- ========== PANEL GENERAL (inchangé fonctionnellement) ========== -->
+            <!-- ========== PANEL GENERAL (2 colonnes : à gauche = société/fiscal ; à droite = e-mail) ========== -->
             <Grid x:Name="PanelGeneral" Visibility="Collapsed">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Général" FontWeight="Bold"/>
+                <!-- Titre -->
+                <TextBlock Text="Général" FontWeight="Bold" Grid.Row="0"/>
 
-                <StackPanel Grid.Row="2" Orientation="Vertical">
-                    <GroupBox Header="Profil fiscal">
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
-                            <RadioButton x:Name="RBTaxMicro" Content="Micro-entreprise (sans TVA)"/>
-                            <RadioButton x:Name="RBTaxTVA"   Content="TVA"/>
+                <!-- Corps à 2 colonnes -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <!-- Colonne gauche -->
+                        <ColumnDefinition Width="580"/>
+                        <!-- Colonne droite (email) ; mets * si tu préfères -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ===== Colonne GAUCHE : profil fiscal + identité + bouton Enregistrer ===== -->
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Orientation="Vertical" Margin="0,0,12,0">
+
+                            <GroupBox Header="Profil fiscal">
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                    <RadioButton x:Name="RBTaxMicro" Content="Micro-entreprise (sans TVA)"/>
+                                    <RadioButton x:Name="RBTaxTVA"   Content="TVA" Margin="16,0,0,0"/>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="Identité société" Margin="0,12,0,0">
+                                <Grid Margin="4">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom commercial" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="0" Grid.Column="1" x:Name="BoxNomCommercial" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="SIRET" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="1" Grid.Column="1" x:Name="BoxSiret" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Adresse 1" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BoxAdresse1" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Adresse 2" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="3" Grid.Column="1" x:Name="BoxAdresse2" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Code postal" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="4" Grid.Column="1" x:Name="BoxCodePostal" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Ville" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="5" Grid.Column="1" x:Name="BoxVille" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Pays" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="6" Grid.Column="1" x:Name="BoxPays" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Email" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="7" Grid.Column="1" x:Name="BoxEmail" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="Téléphone" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="8" Grid.Column="1" x:Name="BoxTelephone" Style="{StaticResource DarkTextBox}"/>
+
+                                    <TextBlock Grid.Row="9" Grid.Column="0" Text="Site web" VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="9" Grid.Column="1" x:Name="BoxSiteWeb" Style="{StaticResource DarkTextBox}"/>
+                                </Grid>
+                            </GroupBox>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button Content="Enregistrer" Width="140" Click="BtnSaveGeneral_Click"/>
+                            </StackPanel>
                         </StackPanel>
-                    </GroupBox>
+                    </ScrollViewer>
 
-                    <GroupBox Header="Identité société">
-                        <Grid Margin="4">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                    <!-- ===== Colonne DROITE : comptes e-mail + modèles ===== -->
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="12,0,0,0">
+                        <StackPanel Orientation="Vertical">
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom commercial" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="0" Grid.Column="1" x:Name="BoxNomCommercial" Style="{StaticResource DarkTextBox}"/>
+                            <GroupBox Header="Comptes e-mail">
+                                <DockPanel>
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8" HorizontalAlignment="Right">
+                                        <Button Content="Ajouter…"  Click="BtnAddEmailAccount_Click"  Margin="0,0,8,0"/>
+                                        <Button Content="Modifier…" Click="BtnEditEmailAccount_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Supprimer" Click="BtnDeleteEmailAccount_Click"/>
+                                    </StackPanel>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="SIRET" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="1" Grid.Column="1" x:Name="BoxSiret" Style="{StaticResource DarkTextBox}"/>
+                                    <DataGrid x:Name="GridEmailAccounts"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  MinHeight="160">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Nom"        Binding="{Binding DisplayName}" Width="2*"/>
+                                            <DataGridTextColumn Header="Adresse"    Binding="{Binding Address}"     Width="2*"/>
+                                            <DataGridTextColumn Header="Serveur"    Binding="{Binding SmtpHost}"    Width="2*"/>
+                                            <DataGridTextColumn Header="Port"       Binding="{Binding SmtpPort}"    Width="*"/>
+                                            <DataGridCheckBoxColumn Header="SSL"    Binding="{Binding UseSsl}"      Width="*"/>
+                                            <DataGridCheckBoxColumn Header="Par défaut" Binding="{Binding IsDefault}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </GroupBox>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Adresse 1" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="2" Grid.Column="1" x:Name="BoxAdresse1" Style="{StaticResource DarkTextBox}"/>
+                            <GroupBox Header="Modèles e-mail" Margin="0,12,0,0">
+                                <DockPanel>
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8" HorizontalAlignment="Right">
+                                        <Button Content="Créer…"    Click="BtnAddEmailTemplate_Click"  Margin="0,0,8,0"/>
+                                        <Button Content="Modifier…" Click="BtnEditEmailTemplate_Click" Margin="0,0,8,0"/>
+                                        <Button Content="Supprimer" Click="BtnDeleteEmailTemplate_Click"/>
+                                    </StackPanel>
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Adresse 2" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="3" Grid.Column="1" x:Name="BoxAdresse2" Style="{StaticResource DarkTextBox}"/>
+                                    <DataGrid x:Name="GridEmailTemplates"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  MinHeight="160">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Nom"   Binding="{Binding Name}"    Width="2*"/>
+                                            <DataGridTextColumn Header="Sujet" Binding="{Binding Subject}" Width="3*"/>
+                                            <DataGridCheckBoxColumn Header="HTML" Binding="{Binding IsHtml}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </GroupBox>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Code postal" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="4" Grid.Column="1" x:Name="BoxCodePostal" Style="{StaticResource DarkTextBox}"/>
-
-                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Ville" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="5" Grid.Column="1" x:Name="BoxVille" Style="{StaticResource DarkTextBox}"/>
-
-                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Pays" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="6" Grid.Column="1" x:Name="BoxPays" Style="{StaticResource DarkTextBox}"/>
-
-                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Email" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="7" Grid.Column="1" x:Name="BoxEmail" Style="{StaticResource DarkTextBox}"/>
-
-                            <TextBlock Grid.Row="8" Grid.Column="0" Text="Téléphone" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="8" Grid.Column="1" x:Name="BoxTelephone" Style="{StaticResource DarkTextBox}"/>
-
-                            <TextBlock Grid.Row="9" Grid.Column="0" Text="Site web" VerticalAlignment="Center"/>
-                            <TextBox   Grid.Row="9" Grid.Column="1" x:Name="BoxSiteWeb" Style="{StaticResource DarkTextBox}"/>
-                        </Grid>
-                    </GroupBox>
-                </StackPanel>
-
-                <StackPanel Grid.Row="3" Orientation="Horizontal">
-                    <Button Content="Enregistrer" Width="140" Click="BtnSaveGeneral_Click"/>
-                </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
-
-            <!-- ========== PANEL ARTICLES (inchangé visuel sombre) ========== -->
+            
+            <!-- ========== PANEL ARTICLES ========== -->
             <Grid x:Name="PanelArticles" Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

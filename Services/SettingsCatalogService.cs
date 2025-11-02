@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using VorTech.App.Models;
-using Windows.ApplicationModel.Payments;
 
 namespace VorTech.App.Services
 {
@@ -99,6 +98,39 @@ INSERT INTO CompanyProfile(Id, NomCommercial, Siret, Adresse1, Adresse2, CodePos
 VALUES(1, '', '', '', '', '', '', '', '', '', '');";
                     ins.ExecuteNonQuery();
                 }
+            }
+
+            // --- Compte Emails ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS EmailAccounts (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  DisplayName TEXT NOT NULL,
+  Address     TEXT NOT NULL,
+  SmtpHost    TEXT NOT NULL,
+  SmtpPort    INTEGER NOT NULL,
+  UseSsl      INTEGER NOT NULL DEFAULT 1,
+  Username    TEXT NOT NULL,
+  Password    TEXT NOT NULL,
+  IsDefault   INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS UX_EmailAccounts_Address ON EmailAccounts(Address);";
+                cmd.ExecuteNonQuery();
+            }
+
+            // --- Modele Email ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS EmailTemplates (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name TEXT NOT NULL,                -- ex: ""Envoi devis""
+  Subject TEXT NOT NULL,            -- ex: ""Votre devis {{Devis.Numero}}""
+  Body TEXT NOT NULL,               -- HTML ou texte (on gère les deux)
+  IsHtml INTEGER NOT NULL DEFAULT 1
+);";
+                cmd.ExecuteNonQuery();
             }
 
             // --- BankAccounts ----
@@ -420,6 +452,168 @@ WHERE Id=1;";
             cmd.ExecuteNonQuery();
         }
 
+        // -------- EMAIL ACCOUNTS --------
+        public List<EmailAccount> GetEmailAccounts()
+        {
+            var list = new List<EmailAccount>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"SELECT Id, DisplayName, Address, SmtpHost, SmtpPort, UseSsl, Username, Password, IsDefault
+                        FROM EmailAccounts
+                        ORDER BY IsDefault DESC, DisplayName COLLATE NOCASE;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new EmailAccount
+                {
+                    Id = rd.GetInt32(0),
+                    DisplayName = rd.GetString(1),
+                    Address = rd.GetString(2),
+                    SmtpHost = rd.GetString(3),
+                    SmtpPort = rd.GetInt32(4),
+                    UseSsl = rd.GetInt32(5) != 0,
+                    Username = rd.GetString(6),
+                    Password = rd.GetString(7),
+                    IsDefault = rd.GetInt32(8) != 0
+                });
+            }
+            return list;
+        }
+
+        public int InsertEmailAccount(EmailAccount a)
+        {
+            using var cn = Db.Open();
+            using var tx = cn.BeginTransaction();
+
+            if (a.IsDefault)
+            {
+                using var clear = cn.CreateCommand();
+                clear.CommandText = "UPDATE EmailAccounts SET IsDefault = 0;";
+                clear.ExecuteNonQuery();
+            }
+
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO EmailAccounts(DisplayName, Address, SmtpHost, SmtpPort, UseSsl, Username, Password, IsDefault)
+VALUES(@dn,@ad,@host,@port,@ssl,@usr,@pwd,@def);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@dn", a.DisplayName ?? "");
+            Db.AddParam(cmd, "@ad", a.Address ?? "");
+            Db.AddParam(cmd, "@host", a.SmtpHost ?? "");
+            Db.AddParam(cmd, "@port", a.SmtpPort);
+            Db.AddParam(cmd, "@ssl", a.UseSsl ? 1 : 0);
+            Db.AddParam(cmd, "@usr", a.Username ?? "");
+            Db.AddParam(cmd, "@pwd", a.Password ?? "");
+            Db.AddParam(cmd, "@def", a.IsDefault ? 1 : 0);
+            var id = Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+
+            tx.Commit();
+            return id;
+        }
+
+        public void UpdateEmailAccount(EmailAccount a)
+        {
+            using var cn = Db.Open();
+            using var tx = cn.BeginTransaction();
+
+            if (a.IsDefault)
+            {
+                using var clear = cn.CreateCommand();
+                clear.CommandText = "UPDATE EmailAccounts SET IsDefault = 0;";
+                clear.ExecuteNonQuery();
+            }
+
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE EmailAccounts
+SET DisplayName=@dn, Address=@ad, SmtpHost=@host, SmtpPort=@port, UseSsl=@ssl, Username=@usr, Password=@pwd, IsDefault=@def
+WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", a.Id);
+            Db.AddParam(cmd, "@dn", a.DisplayName ?? "");
+            Db.AddParam(cmd, "@ad", a.Address ?? "");
+            Db.AddParam(cmd, "@host", a.SmtpHost ?? "");
+            Db.AddParam(cmd, "@port", a.SmtpPort);
+            Db.AddParam(cmd, "@ssl", a.UseSsl ? 1 : 0);
+            Db.AddParam(cmd, "@usr", a.Username ?? "");
+            Db.AddParam(cmd, "@pwd", a.Password ?? "");
+            Db.AddParam(cmd, "@def", a.IsDefault ? 1 : 0);
+            cmd.ExecuteNonQuery();
+
+            tx.Commit();
+        }
+
+        public void DeleteEmailAccount(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM EmailAccounts WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        // -------- EMAIL TEMPLATES --------
+        public List<EmailTemplate> GetEmailTemplates()
+        {
+            var list = new List<EmailTemplate>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"SELECT Id, Name, Subject, Body, IsHtml
+                        FROM EmailTemplates
+                        ORDER BY Name COLLATE NOCASE;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new EmailTemplate
+                {
+                    Id = rd.GetInt32(0),
+                    Name = rd.GetString(1),
+                    Subject = rd.GetString(2),
+                    Body = rd.GetString(3),
+                    IsHtml = rd.GetInt32(4) != 0
+                });
+            }
+            return list;
+        }
+
+        public int InsertEmailTemplate(EmailTemplate t)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO EmailTemplates(Name, Subject, Body, IsHtml)
+VALUES(@n,@s,@b,@h);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@n", t.Name ?? "");
+            Db.AddParam(cmd, "@s", t.Subject ?? "");
+            Db.AddParam(cmd, "@b", t.Body ?? "");
+            Db.AddParam(cmd, "@h", t.IsHtml ? 1 : 0);
+            return Convert.ToInt32(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        public void UpdateEmailTemplate(EmailTemplate t)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE EmailTemplates
+SET Name=@n, Subject=@s, Body=@b, IsHtml=@h
+WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", t.Id);
+            Db.AddParam(cmd, "@n", t.Name ?? "");
+            Db.AddParam(cmd, "@s", t.Subject ?? "");
+            Db.AddParam(cmd, "@b", t.Body ?? "");
+            Db.AddParam(cmd, "@h", t.IsHtml ? 1 : 0);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteEmailTemplate(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM EmailTemplates WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
+        }
 
         // -------- PaymentTerms CRUD --------
         public List<PaymentTerm> GetPaymentTerms()

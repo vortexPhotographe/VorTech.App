@@ -128,7 +128,27 @@
 
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="200,0">
                 <Button Content="Enregistrer" Click="Save_Click" Margin="4,0"/>
-                <Button Content="Générer PDF" Padding="12,6" Margin="4,0"/>
+                <Button x:Name="BtnRegenPdf"
+                        Content="Générer PDF"
+                        Padding="12,6"
+                        Margin="4,0"
+                        Click="BtnRegenPdf_Click">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <!-- Par défaut activé -->
+                            <Setter Property="IsEnabled" Value="True"/>
+                            <!-- Désactiver si Numero est null/vidé -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Numero}" Value="{x:Null}">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Numero}" Value="">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button x:Name="BtnEmit" Content="Émettre (numéro)" Click="BtnEmit_Click" Margin="4,0"/>
                 <Button Content="Supprimer" Click="Delete_Click" Margin="4,0"/>
             </StackPanel>

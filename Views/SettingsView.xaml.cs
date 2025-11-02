@@ -22,12 +22,14 @@ namespace VorTech.App.Views
         private readonly INumberingService _num = new NumberingService();
         private readonly BankAccountService _bank = new BankAccountService();
         private System.Collections.ObjectModel.ObservableCollection<AnnexVM> _annexes = new();
+        private readonly SettingsCatalogService _catalog = new SettingsCatalogService();
 
         public SettingsView()
         {
             InitializeComponent();
             LoadGeneral();
             ShowPanel(PanelGeneral);
+            LoadEmailSettings();
             LoadArticles();
             LoadBankAccounts();
             LoadPaymentTerms();
@@ -44,7 +46,7 @@ namespace VorTech.App.Views
         private void BtnShowGeneral_Click(object sender, RoutedEventArgs e) => ShowPanel(PanelGeneral);
         private void BtnShowArticles_Click(object sender, RoutedEventArgs e) => ShowPanel(PanelArticles);
 
-        // ---------- Général (JSON) ----------
+        // ---------- Général JSON et BDD ----------
         private void LoadGeneral()
         {
             _config = ConfigService.Load();
@@ -67,6 +69,202 @@ namespace VorTech.App.Views
             _catalogs.SaveCompanyProfile(_company);
 
             MessageBox.Show("Paramètres généraux enregistrés.");
+        }
+
+        private void LoadEmailSettings()
+        {
+            GridEmailAccounts.ItemsSource = _catalogs.GetEmailAccounts();
+            GridEmailTemplates.ItemsSource = _catalogs.GetEmailTemplates();
+        }
+
+        // ==== EMAIL ACCOUNTS ====
+        private EmailAccount? PromptEmailAccount(EmailAccount? src = null)
+        {
+            var win = new Window
+            {
+                Title = (src == null ? "Nouveau compte email" : "Modifier le compte email"),
+                Width = 420,
+                Height = 420,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this)
+            };
+
+            var grid = new Grid { Margin = new Thickness(12) };
+            for (int i = 0; i < 10; i++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            TextBox Txt(string? v, int r)
+            {
+                var tb = new TextBox { Text = v ?? "", Margin = new Thickness(4) };
+                Grid.SetRow(tb, r); Grid.SetColumn(tb, 1);
+                grid.Children.Add(tb);
+                return tb;
+            }
+            void Lbl(string t, int r)
+            {
+                var lb = new Label { Content = t, Margin = new Thickness(4) };
+                Grid.SetRow(lb, r); Grid.SetColumn(lb, 0);
+                grid.Children.Add(lb);
+            }
+
+            int row = 0;
+            Lbl("Nom d’affichage", row); var dn = Txt(src?.DisplayName, row++);
+            Lbl("Adresse", row); var ad = Txt(src?.Address, row++);
+            Lbl("SMTP Host", row); var sh = Txt(src?.SmtpHost, row++);
+            Lbl("SMTP Port", row); var sp = Txt((src?.SmtpPort ?? 587).ToString(), row++);
+            Lbl("SSL (true/false)", row); var ssl = Txt((src?.UseSsl ?? true).ToString(), row++);
+            Lbl("Utilisateur", row); var us = Txt(src?.Username, row++);
+            Lbl("Mot de passe", row); var pw = Txt(src?.Password, row++);
+            Lbl("Par défaut (0/1)", row); var df = Txt(src?.IsDefault == true ? "1" : "0", row++);
+
+            var btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(4) };
+            var ok = new Button { Content = "OK", IsDefault = true, Margin = new Thickness(4) };
+            var cancel = new Button { Content = "Annuler", IsCancel = true, Margin = new Thickness(4) };
+            ok.Click += (_, __) => win.DialogResult = true;
+            btns.Children.Add(ok); btns.Children.Add(cancel);
+            Grid.SetRow(btns, row); Grid.SetColumnSpan(btns, 2);
+            grid.Children.Add(btns);
+
+            win.Content = grid;
+            if (win.ShowDialog() != true) return null;
+
+            if (!int.TryParse(sp.Text.Trim(), out var port)) port = 587;
+            bool useSsl = !"false".Equals(ssl.Text.Trim(), StringComparison.OrdinalIgnoreCase);
+            bool isDef = df.Text.Trim() == "1";
+
+            return new EmailAccount
+            {
+                Id = src?.Id ?? 0,
+                DisplayName = dn.Text.Trim(),
+                Address = ad.Text.Trim(),
+                SmtpHost = sh.Text.Trim(),
+                SmtpPort = port,
+                UseSsl = useSsl,
+                Username = us.Text.Trim(),
+                Password = pw.Text,
+                IsDefault = isDef
+            };
+        }
+
+        private void BtnAddEmailAccount_Click(object sender, RoutedEventArgs e)
+        {
+            var a = PromptEmailAccount(null);
+            if (a == null) return;
+            a.Id = _catalogs.InsertEmailAccount(a);
+            LoadEmailSettings();
+        }
+
+        private void BtnEditEmailAccount_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridEmailAccounts.SelectedItem is not EmailAccount sel) return;
+            var upd = PromptEmailAccount(sel);
+            if (upd == null) return;
+            upd.Id = sel.Id;
+            _catalogs.UpdateEmailAccount(upd);
+            LoadEmailSettings();
+        }
+
+        private void BtnDeleteEmailAccount_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridEmailAccounts.SelectedItem is not EmailAccount sel) return;
+            if (MessageBox.Show($"Supprimer le compte « {sel.DisplayName} » ?", "Confirmer",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            _catalogs.DeleteEmailAccount(sel.Id);
+            LoadEmailSettings();
+        }
+
+        // ==== EMAIL TEMPLATES ====
+        private EmailTemplate? PromptEmailTemplate(EmailTemplate? src = null)
+        {
+            var win = new Window
+            {
+                Title = (src == null ? "Nouveau modèle email" : "Modifier le modèle"),
+                Width = 520,
+                Height = 520,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this)
+            };
+
+            var grid = new Grid { Margin = new Thickness(12) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Name
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Subject
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Body
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // IsHtml + buttons
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            void L(int r, string t)
+            {
+                var lb = new Label { Content = t, Margin = new Thickness(4) };
+                Grid.SetRow(lb, r); Grid.SetColumn(lb, 0);
+                grid.Children.Add(lb);
+            }
+
+            L(0, "Nom"); var name = new TextBox { Text = src?.Name ?? "", Margin = new Thickness(4) };
+            Grid.SetRow(name, 0); Grid.SetColumn(name, 1); grid.Children.Add(name);
+
+            L(1, "Objet"); var subj = new TextBox { Text = src?.Subject ?? "", Margin = new Thickness(4) };
+            Grid.SetRow(subj, 1); Grid.SetColumn(subj, 1); grid.Children.Add(subj);
+
+            L(2, "Corps"); var body = new TextBox { Text = src?.Body ?? "", Margin = new Thickness(4), AcceptsReturn = true, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetRow(body, 2); Grid.SetColumn(body, 1); grid.Children.Add(body);
+
+            var chkHtml = new CheckBox { Content = "HTML", IsChecked = src?.IsHtml ?? true, Margin = new Thickness(4) };
+            var btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var ok = new Button { Content = "OK", IsDefault = true, Margin = new Thickness(4) };
+            var cancel = new Button { Content = "Annuler", IsCancel = true, Margin = new Thickness(4) };
+            ok.Click += (_, __) => win.DialogResult = true;
+
+            var bottom = new DockPanel { Margin = new Thickness(4) };
+            DockPanel.SetDock(chkHtml, Dock.Left);
+            DockPanel.SetDock(btns, Dock.Right);
+            btns.Children.Add(ok); btns.Children.Add(cancel);
+            bottom.Children.Add(chkHtml); bottom.Children.Add(btns);
+
+            Grid.SetRow(bottom, 3); Grid.SetColumnSpan(bottom, 2);
+            grid.Children.Add(bottom);
+
+            win.Content = grid;
+            if (win.ShowDialog() != true) return null;
+
+            return new EmailTemplate
+            {
+                Id = src?.Id ?? 0,
+                Name = name.Text?.Trim() ?? "",
+                Subject = subj.Text?.Trim() ?? "",
+                Body = body.Text ?? "",
+                IsHtml = chkHtml.IsChecked == true
+            };
+        }
+
+        private void BtnAddEmailTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            var t = PromptEmailTemplate(null);
+            if (t == null) return;
+            t.Id = _catalogs.InsertEmailTemplate(t);
+            LoadEmailSettings();
+        }
+
+        private void BtnEditEmailTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridEmailTemplates.SelectedItem is not EmailTemplate sel) return;
+            var upd = PromptEmailTemplate(sel);
+            if (upd == null) return;
+            upd.Id = sel.Id;
+            _catalogs.UpdateEmailTemplate(upd);
+            LoadEmailSettings();
+        }
+
+        private void BtnDeleteEmailTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridEmailTemplates.SelectedItem is not EmailTemplate sel) return;
+            if (MessageBox.Show($"Supprimer le modèle « {sel.Name} » ?", "Confirmer",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            _catalogs.DeleteEmailTemplate(sel.Id);
+            LoadEmailSettings();
         }
 
         // ---------- Articles (catalogues) ----------
@@ -392,7 +590,10 @@ namespace VorTech.App.Views
             _company.SiteWeb = BoxSiteWeb.Text?.Trim() ?? "";
         }
 
-        // --- Devis et Facture
+        // --- Email et Modeles ---
+
+
+        // --- Devis et Facture ---
         private void BtnSaveFormats_Click(object sender, RoutedEventArgs e)
         {
             var devisPattern = (TxtPatternDevis.Text ?? string.Empty).Trim();

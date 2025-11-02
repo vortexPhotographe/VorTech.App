@@ -658,6 +658,122 @@ WHERE Id=@id;";
             return outfile;
         }
 
+        // Regénération de PDF
+        [SupportedOSPlatform("windows")]
+        public string RegeneratePdf(int devisId)
+        {
+            if (devisId <= 0) throw new ArgumentException("devisId invalide");
+
+            using var cn = Db.Open();
+
+            // -- Lire snapshot devis (on ne modifie rien)
+            using var cmdGet = cn.CreateCommand();
+            cmdGet.CommandText = @"
+        SELECT Id, Numero, Date,
+               ClientSociete, ClientNomPrenom,
+               ClientAdresseL1, ClientCodePostal, ClientVille,
+               ClientTelephone, ClientEmail,
+               RemiseGlobale, PaymentTermsText, PaymentPlanJson,
+               BankAccountId, NoteHaut, NoteBas
+        FROM Devis
+        WHERE Id = @id;";
+            Db.AddParam(cmdGet, "@id", devisId);
+
+            string numero, clientSociete, clientNomPrenom, addr1, cp, ville, phone, email;
+            decimal remiseEuro;
+            string? payText, payPlanJson, noteTop, noteBottom;
+            int? bankId = null;
+
+            using (var rd = cmdGet.ExecuteReader())
+            {
+                if (!rd.Read()) throw new InvalidOperationException("Devis introuvable");
+                numero = rd["Numero"] as string ?? "";         // doit exister pour régénérer
+                clientSociete = rd["ClientSociete"] as string ?? "";
+                clientNomPrenom = rd["ClientNomPrenom"] as string ?? "";
+                addr1 = rd["ClientAdresseL1"] as string ?? "";
+                cp = rd["ClientCodePostal"] as string ?? "";
+                ville = rd["ClientVille"] as string ?? "";
+                phone = rd["ClientTelephone"] as string ?? "";
+                email = rd["ClientEmail"] as string ?? "";
+                remiseEuro = Convert.ToDecimal(rd["RemiseGlobale"] ?? 0m, System.Globalization.CultureInfo.InvariantCulture);
+                payText = rd["PaymentTermsText"] as string;
+                payPlanJson = rd["PaymentPlanJson"] as string;
+                noteTop = rd["NoteHaut"] as string;
+                noteBottom = rd["NoteBas"] as string;
+                bankId = rd["BankAccountId"] == DBNull.Value ? (int?)null : Convert.ToInt32(rd["BankAccountId"]);
+            }
+
+            // Lignes
+            var lines = new List<(string designation, double qty, double pu)>();
+            using (var cmdL = cn.CreateCommand())
+            {
+                cmdL.CommandText = @"SELECT Designation, Qty, PU FROM DevisLignes WHERE DevisId=@id ORDER BY Id;";
+                Db.AddParam(cmdL, "@id", devisId);
+                using var rl = cmdL.ExecuteReader();
+                while (rl.Read())
+                {
+                    var d = rl["Designation"] as string ?? "";
+                    var q = Convert.ToDouble(rl["Qty"], System.Globalization.CultureInfo.InvariantCulture);
+                    var p = Convert.ToDouble(rl["PU"], System.Globalization.CultureInfo.InvariantCulture);
+                    lines.Add((d, q, p));
+                }
+            }
+
+            // Bank (facultatif)
+            string? bankHolder = null, bankName = null, iban = null, bic = null;
+            if (bankId.HasValue)
+            {
+                using var cmdB = cn.CreateCommand();
+                cmdB.CommandText = @"SELECT Holder, BankName, Iban, Bic FROM BankAccounts WHERE Id=@bid;";
+                Db.AddParam(cmdB, "@bid", bankId.Value);
+                using var rb = cmdB.ExecuteReader();
+                if (rb.Read())
+                {
+                    bankHolder = rb["Holder"] as string;
+                    bankName = rb["BankName"] as string;
+                    iban = rb["Iban"] as string;
+                    bic = rb["Bic"] as string;
+                }
+            }
+
+            // Nom/Adresse destinataire
+            var clientName = !string.IsNullOrWhiteSpace(clientSociete) ? clientSociete
+                            : (!string.IsNullOrWhiteSpace(clientNomPrenom) ? clientNomPrenom : "Destinataire non renseigné");
+            var clientAddress = string.Join("\n", new[]
+            {
+        addr1, $"{cp} {ville}".Trim()
+    }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            // Chemin de sortie (même nom)
+            var outDir = System.IO.Path.Combine(Paths.DataDir, "Devis");
+            System.IO.Directory.CreateDirectory(outDir);
+            var outfile = System.IO.Path.Combine(outDir, $"{numero}.pdf");
+
+            // Rendu (écrase si existe) + annexes/options pris via 'devisId'
+            InvoicePdf.RenderSimpleInvoice(
+                outputPath: outfile,
+                numero: numero,
+                clientName: clientName,
+                clientAddr: clientAddress,
+                lines: lines,
+                showMention293B: true,
+                discountEuro: remiseEuro,
+                bankHolder: bankHolder,
+                bankName: bankName,
+                iban: iban,
+                bic: bic,
+                paymentTermsText: payText,
+                paymentPlanJson: payPlanJson,
+                noteTop: noteTop,
+                noteBottom: noteBottom,
+                clientPhone: phone,
+                clientEmail: email,
+                devisId: devisId
+            );
+
+            return outfile;
+        }
+
 
         public void MarkTransformed(int devisId)
         {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
 using VorTech.App.Models;
@@ -308,6 +309,7 @@ namespace VorTech.App.Views
         }
 
         // --- Emission (numérotation) ---
+        [SupportedOSPlatform("windows")]
         private void Emit_Click(object sender, RoutedEventArgs e)
         {
             // 1) s'assurer que l'ID est là
@@ -390,6 +392,23 @@ namespace VorTech.App.Views
             NewDraft();
         }
 
+        // Regénérer DEVIS PDF
+        [SupportedOSPlatform("windows")]
+        private void BtnRegenPdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (_current == null || string.IsNullOrWhiteSpace(_current.Numero))
+                return;
+
+            try
+            {
+                var path = _devis.RegeneratePdf(_current.Id);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Échec de la régénération du PDF : " + ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void CmbBank_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_current == null || _current.Id <= 0) return;
@@ -400,6 +419,7 @@ namespace VorTech.App.Views
             BindCurrent();
         }
 
+        [SupportedOSPlatform("windows")]
         private void BtnEmit_Click(object sender, RoutedEventArgs e)
         {
             EnsureCurrentId();                  // d'abord on s'assure d'avoir un Id
