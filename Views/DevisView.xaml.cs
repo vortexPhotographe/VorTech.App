@@ -37,6 +37,17 @@ namespace VorTech.App.Views
             LoadList(null);
             NewDraft(); // ouvre un brouillon vide par défaut
         }
+        public DevisView(int devisId) : this()
+        {
+            LoadDevis(devisId);
+        }
+
+        // === OUVERTURE DE DEVIS DEPUIS LES AUTRES VUES ===
+        public void OpenDevis(int devisId)
+        {
+            // appelle la méthode existante (privée) de la vue
+            LoadDevis(devisId);
+        }
 
         // --- Liste gauche ---
         private void LoadList(string? search)

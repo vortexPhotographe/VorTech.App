@@ -939,6 +939,24 @@ WHERE Id=@id;";
                 RecalcTotals(devisId);
         }
 
+        // ----- Depuis la vue clients -----
+        public List<Devis> GetByClient(int clientId)
+        {
+            var result = new List<Devis>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+        SELECT *
+        FROM Devis
+        WHERE DeletedAt IS NULL
+          AND ClientId=@cid
+        ORDER BY Date DESC, Id DESC;";
+            Db.AddParam(cmd, "@cid", clientId);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read()) result.Add(MapDevis(rd));
+            return result;
+        }
+
         // ----- mappers -----
         public void SetRemiseGlobale(int devisId, decimal remiseGlobale)
             => SetGlobalDiscount(devisId, remiseGlobale);

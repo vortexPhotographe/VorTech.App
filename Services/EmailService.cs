@@ -1,11 +1,12 @@
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using VorTech.App.Models;
 
 
 namespace VorTech.App.Services
@@ -195,6 +196,72 @@ SELECT last_insert_rowid();";
                 res = res.Replace("{{" + kv.Key + "}}", kv.Value ?? "", StringComparison.OrdinalIgnoreCase);
             }
             return res;
+        }
+
+        // Listes des email envoyer par clients
+        public static List<EmailLog> GetLogsByToAddress(string toAddress)
+        {
+            var list = new List<EmailLog>();
+            if (string.IsNullOrWhiteSpace(toAddress))
+                return list;
+
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+        SELECT *
+        FROM EmailLogs
+        WHERE ToAddress=@to
+        ORDER BY SentAt DESC;";
+            Db.AddParam(cmd, "@to", toAddress);
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+                list.Add(new EmailLog
+                {
+                    Id = Convert.ToInt32(rd["Id"]),
+                    SentAt = DateTime.Parse(rd["SentAt"]?.ToString() ?? DateTime.Now.ToString("s")),
+                    FromAddress = rd["FromAddress"]?.ToString() ?? "",
+                    ToAddress = rd["ToAddress"]?.ToString() ?? "",
+                    Subject = rd["Subject"]?.ToString() ?? "",
+                    Attachments = rd["Attachments"]?.ToString() ?? "",
+                    Status = rd["Status"]?.ToString() ?? "",
+                    Error = rd["Error"] == DBNull.Value ? null : rd["Error"]?.ToString(),
+                    Context = rd["Context"]?.ToString() ?? ""
+                });
+            return list;
+        }
+
+        public static List<EmailLog> GetLogsByContexts(List<string> contexts)
+        {
+            var list = new List<EmailLog>();
+            if (contexts == null || contexts.Count == 0)
+                return list;
+
+            using var cn = Db.Open();
+            foreach (var ctx in contexts)
+            {
+                using var cmd = cn.CreateCommand();
+                cmd.CommandText = @"
+            SELECT *
+            FROM EmailLogs
+            WHERE Context=@ctx
+            ORDER BY SentAt DESC;";
+                Db.AddParam(cmd, "@ctx", ctx);
+                using var rd = cmd.ExecuteReader();
+                while (rd.Read())
+                    list.Add(new EmailLog
+                    {
+                        Id = Convert.ToInt32(rd["Id"]),
+                        SentAt = DateTime.Parse(rd["SentAt"]?.ToString() ?? DateTime.Now.ToString("s")),
+                        FromAddress = rd["FromAddress"]?.ToString() ?? "",
+                        ToAddress = rd["ToAddress"]?.ToString() ?? "",
+                        Subject = rd["Subject"]?.ToString() ?? "",
+                        Attachments = rd["Attachments"]?.ToString() ?? "",
+                        Status = rd["Status"]?.ToString() ?? "",
+                        Error = rd["Error"] == DBNull.Value ? null : rd["Error"]?.ToString(),
+                        Context = rd["Context"]?.ToString() ?? ""
+                    });
+            }
+            return list;
         }
     }
 }
