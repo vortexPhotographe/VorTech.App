@@ -1031,5 +1031,55 @@ WHERE Id=@id;";
             Db.AddParam(cmd, "@id", devisId);
             cmd.ExecuteNonQuery();
         }
+
+        public string EmitNumero(int devisId, INumberingService num)
+        {
+            using var cn = Db.Open();
+
+            // 1) Lire l'état actuel (Numero + Date) SANS transaction d'écriture
+            using var get = cn.CreateCommand();
+
+            get.CommandText = "SELECT Numero, Date FROM Devis WHERE Id=@id;";
+            Db.AddParam(get, "@id", devisId);
+
+            string? currentNumero = null;
+            DateOnly dateDevis = DateOnly.FromDateTime(DateTime.Today);
+
+            using (var rd = get.ExecuteReader())
+            {
+                if (!rd.Read())
+                    throw new InvalidOperationException("Devis introuvable.");
+
+                currentNumero = rd.IsDBNull(0) ? null : rd.GetString(0);
+
+                if (!rd.IsDBNull(1))
+                {
+                    var s = rd.GetValue(1)?.ToString();
+                    if (!string.IsNullOrWhiteSpace(s) && DateOnly.TryParse(s, out var d))
+                        dateDevis = d;
+                }
+            }
+
+            // 2) Déjà numéroté ? on renvoie
+            if (!string.IsNullOrWhiteSpace(currentNumero))
+                return currentNumero!;
+
+            // 3) Numérotation (sa transaction à elle)
+            var newNumero = num.Next("DEVI", dateDevis);
+
+            // 4) Ecriture du numéro dans Devis (transaction courte, maintenant seulement)
+            using var tx = cn.BeginTransaction();
+            using (var upd = cn.CreateCommand())
+            {
+                upd.Transaction = tx;
+                upd.CommandText = "UPDATE Devis SET Numero=@n, Etat='Numerote' WHERE Id=@id;";
+                Db.AddParam(upd, "@n", newNumero);
+                Db.AddParam(upd, "@id", devisId);
+                upd.ExecuteNonQuery();
+            }
+            tx.Commit();
+
+            return newNumero;
+        }
     }
 }

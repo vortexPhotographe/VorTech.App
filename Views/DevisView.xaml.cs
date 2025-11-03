@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using VorTech.App.Models;
 using VorTech.App.Services;
 
@@ -490,11 +491,28 @@ namespace VorTech.App.Views
         private void BtnRegenPdf_Click(object sender, RoutedEventArgs e)
         {
             if (_current == null || string.IsNullOrWhiteSpace(_current.Numero))
+            {
+                MessageBox.Show("Le devis n’est pas numéroté.", "PDF", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
+            }
 
             try
             {
                 var path = _devis.RegeneratePdf(_current.Id);
+                if (!File.Exists(path))
+                {
+                    MessageBox.Show("PDF régénéré mais introuvable sur le disque.", "PDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // recharge pour avoir les totaux/état à jour si besoin
+                _current = _devis.GetById(_current.Id);
+                if (!TryGetCurrentId(out var id)) return;    // ou gère l’erreur
+                _lines = _devis.GetLines(id);
+                BindCurrent();
+
+                // Ouvrir le PDF tout de suite
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
@@ -515,27 +533,32 @@ namespace VorTech.App.Views
         [SupportedOSPlatform("windows")]
         private void BtnEmit_Click(object sender, RoutedEventArgs e)
         {
-            EnsureCurrentId();                  // d'abord on s'assure d'avoir un Id
-            if (_current == null) return;       // ensuite on vérifie
-
             try
             {
-                var pdfPath = _devis.Emit(_current!.Id, _num); // génère DEVI-YYYY-MM-####
-                                                               // recharger la fiche et la liste (numéro + état changent)
-                _current = _devis.GetById(_current.Id);
+                CommitAllEdits();                 // termine une éventuelle édition DataGrid
+                EnsureCurrentId();                // garantit un Id (brouillon créé si besoin)
                 if (_current == null) return;
-                _lines = _devis.GetLines(_current.Id);
+
+                // 1) Numérotation seule + passage à 'Numerote'
+                var numero = _devis.EmitNumero(_current.Id, _num);
+
+                // 2) Recharger et rebinder la fiche
+                var id = _current.Id;
+                _current = _devis.GetById(id);
+                _lines = _devis.GetLines(id);
+                _options = _devis.GetOptions(id);
+                _annexes = _devis.GetAnnexes(id);
                 BindCurrent();
                 LoadList(SearchBox.Text?.Trim());
 
-                MessageBox.Show($"Devis émis : {_current?.Numero}\nPDF : {pdfPath}", "OK",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-                System.Diagnostics.Process.Start(new ProcessStartInfo(pdfPath) { UseShellExecute = true });
+                // 3) petit feedback
+                MessageBox.Show($"Numéro attribué : {numero}", "Devis numéroté",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Échec de l'émission : " + ex.Message, "Erreur",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Échec de la numérotation : " + ex.Message, "Erreur",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -663,6 +686,64 @@ namespace VorTech.App.Views
             _devis.DeleteOption(opt.Id);
             _options = _devis.GetOptions(_current.Id);
             GridOptions.ItemsSource = _options;
+        }
+
+        private void New_Click(object sender, RoutedEventArgs e)
+        {
+            // Vider toutes les collections UI
+            _lines = new List<DevisLigne>();
+            _options = new List<DevisOption>();
+            _annexes = new List<DevisAnnexe>();
+            RefreshAnnexListUi();
+
+            // Nouveau brouillon propre
+            NewDraft();                  // remet _current = Brouillon, Total=0...
+            BindCurrent();               // rebinde GridLines, GridOptions, etc.
+            LoadList(SearchBox.Text?.Trim()); // rafraîchir la liste de gauche
+        }
+
+        private void Transform_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("TODO: Transformer en facture (création facture liée + Etat=Transforme).");
+        }
+
+        private void Refuser_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("TODO: Marquer le devis comme Refusé.");
+        }
+
+        private void OpenFacture_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("TODO: Ouvrir la facture liée (FactureId).");
+        }
+
+        private bool TryGetCurrentId(out int id)
+        {
+            id = _current?.Id ?? 0;
+            return id > 0;
+        }
+
+        private void CommitAllEdits()
+        {
+            // Valide toute édition en cours (TextBox, DataGrid, Combo…)
+            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(this), this);
+            Keyboard.ClearFocus();
+
+            try
+            {
+                GridLines.CommitEdit(DataGridEditingUnit.Cell, true);
+                GridLines.CommitEdit(DataGridEditingUnit.Row, true);
+            }
+            catch { /* ok si pas d'édition */ }
+
+            try
+            {
+                GridOptions.CommitEdit(DataGridEditingUnit.Cell, true);
+                GridOptions.CommitEdit(DataGridEditingUnit.Row, true);
+            }
+            catch { /* idem */ }
+
+            UpdateLayout();
         }
     }
 }

@@ -103,6 +103,38 @@
             <!-- style appliqué aux items -->
             <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
         </Style>
+        <!-- Bouton d’action : s’appuie sur le style global, corrige juste le Disabled -->
+        <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Background" Value="{DynamicResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+
+            <Style.Triggers>
+                <!-- Hover / Pressed restent gérés par ton style global -->
+                <!-- On corrige uniquement le rendu Disabled pour rester dark -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Setter Property="Background" Value="{DynamicResource Panel}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Subtle}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Variante accent (ex. “Nouveau”) en s’appuyant sur Accent -->
+        <Style x:Key="ActionButton.Primary" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="{DynamicResource Accent}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="1"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Fore}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -126,53 +158,133 @@
                 <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="200,0">
-                <Button Content="Enregistrer" Click="Save_Click" Margin="4,0"/>
-                <Button x:Name="BtnSendMail"
-                    Content="Envoyer par e-mail"
-                    Click="BtnSendMail_Click"
-                    Margin="4,0"
-                    ToolTip="Envoie le PDF du devis par e-mail au client">
+            <StackPanel Orientation="Horizontal" Margin="200,0">
+                <!-- Enregistrer -->
+                <Button Content="Enregistrer"
+                    Style="{StaticResource ActionButton}"
+                    Click="Save_Click" Margin="4,0"/>
+                
+                <!-- Nouveau : pas de triggers -> style en attribut -->
+                <Button Content="Nouveau"
+          Style="{StaticResource ActionButton}"
+          Click="New_Click" Margin="4,0"/>
+
+                <!-- Supprimer : triggers -> style via Button.Style (BasedOn) -->
+                <Button Content="Supprimer" Click="Delete_Click" Margin="4,0">
                     <Button.Style>
-                        <!-- IMPORTANT : BasedOn pour hériter du style global des boutons -->
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Etat}" Value="Brouillon">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Etat}" Value="Numerote">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Etat}" Value="Envoye">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+
+                                <!-- IMPORTANT : en dernier pour écraser -> pas de sélection / pas encore créé -->
+                                <DataTrigger Binding="{Binding Id}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Émettre (numéro) : visible seulement en Brouillon -->
+                <Button Content="Émettre (numéro)" Click="BtnEmit_Click" Margin="4,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Etat}" Value="Brouillon">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+
+                                <!-- En dernier : si Id==0, on masque malgré Brouillon -->
+                                <DataTrigger Binding="{Binding Id}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Envoyer / Renvoyer -->
+                <Button x:Name="BtnSendMail" Click="BtnSendMail_Click" Margin="4,0" Content="Envoyer par e-mail">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Etat}" Value="Numerote">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="Content"    Value="Envoyer par e-mail"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Etat}" Value="Envoye">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="Content"    Value="Renvoyer"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Générer PDF : masqué en Brouillon et Refuse -->
+                <Button Content="Générer PDF" Click="BtnRegenPdf_Click" Margin="4,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
-                                <!-- Cache si Numero est null -->
-                                <DataTrigger Binding="{Binding Numero}" Value="{x:Null}">
+                                <DataTrigger Binding="{Binding Etat}" Value="Brouillon">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
-                                <!-- Cache si Numero est vide -->
-                                <DataTrigger Binding="{Binding Numero}" Value="">
+                                <DataTrigger Binding="{Binding Etat}" Value="Refuse">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button x:Name="BtnRegenPdf"
-                        Content="Générer PDF"
-                        Padding="12,6"
-                        Margin="4,0"
-                        Click="BtnRegenPdf_Click">
+
+                <!-- Transformer en facture : visible+enabled en Numerote/Envoye -->
+                <Button Content="Transformer en facture" Click="Transform_Click" Margin="4,0">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                            <!-- Par défaut activé -->
-                            <Setter Property="IsEnabled" Value="True"/>
-                            <!-- Désactiver si Numero est null/vidé -->
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="IsEnabled"  Value="False"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding Numero}" Value="{x:Null}">
-                                    <Setter Property="IsEnabled" Value="False"/>
+                                <DataTrigger Binding="{Binding Etat}" Value="Numerote">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="IsEnabled"  Value="True"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding Numero}" Value="">
-                                    <Setter Property="IsEnabled" Value="False"/>
+                                <DataTrigger Binding="{Binding Etat}" Value="Envoye">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="IsEnabled"  Value="True"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button x:Name="BtnEmit" Content="Émettre (numéro)" Click="BtnEmit_Click" Margin="4,0"/>
-                <Button Content="Supprimer" Click="Delete_Click" Margin="4,0"/>
+
+                <!-- Refuser : visible en Numerote/Envoye -->
+                <Button Content="Refuser" Click="Refuser_Click" Margin="4,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Etat}" Value="Numerote">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Etat}" Value="Envoye">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </StackPanel>
         </DockPanel>
 
