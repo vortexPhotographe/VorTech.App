@@ -17,7 +17,7 @@ namespace VorTech.App
         private void NavClients_Click(object sender, RoutedEventArgs e)   => MainContent.Content = new ClientsView();
         private void NavArticles_Click(object sender, RoutedEventArgs e) => MainContent.Content = new VorTech.App.Views.ArticlesView();
         private void NavDevis_Click(object sender, RoutedEventArgs e)     => MainContent.Content = new DevisView();
-        private void NavInvoices_Click(object sender, RoutedEventArgs e)  => MainContent.Content = new InvoicesView();
+        private void NavInvoices_Click(object sender, RoutedEventArgs e) => MainContent.Content = new FacturesView();
         private void NavSettings_Click(object sender, RoutedEventArgs e)  => MainContent.Content = new SettingsView();
     }
 }

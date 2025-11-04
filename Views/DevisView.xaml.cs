@@ -704,7 +704,31 @@ namespace VorTech.App.Views
 
         private void Transform_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("TODO: Transformer en facture (création facture liée + Etat=Transforme).");
+            try
+            {
+                if (_current == null) return;
+
+                // 1) terminer les éditions & sauver la fiche (comme d’hab)
+                CommitAllEdits();
+                Save_Click(this, new RoutedEventArgs());
+
+                // 2) créer la facture depuis le devis courant
+                var facSvc = new FactureService();
+                var factureId = facSvc.CreateFromDevis(_current.Id);
+
+                // 3) feedback et ouverture (si tu as déjà une vue Factures)
+                MessageBox.Show($"Facture créée (brouillon) depuis le devis {_current.Numero}.\nId facture : {factureId}",
+                                "Transformation en facture",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // TODO (plus tard) : ouvrir FacturesView avec factureId
+                // new FacturesView(factureId).Show();  // à adapter à ta navigation
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Échec de la transformation : " + ex.Message, "Erreur",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Refuser_Click(object sender, RoutedEventArgs e)

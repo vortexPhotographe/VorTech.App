@@ -162,6 +162,38 @@ CREATE TABLE IF NOT EXISTS Annexes(
                 cmd.ExecuteNonQuery();
             }
 
+            // --- PaymentModes (Moyens de paiement ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS PaymentModes(
+  Id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name      TEXT    NOT NULL,
+  FeeFixed  REAL    NOT NULL DEFAULT 0,
+  FeeRate   REAL    NOT NULL DEFAULT 0,
+  IsActive  INTEGER NOT NULL DEFAULT 1
+);";
+                cmd.ExecuteNonQuery();
+            }
+
+            // Seed minimal si table vide
+            using (var check = cn.CreateCommand())
+            {
+                check.CommandText = "SELECT COUNT(*) FROM PaymentModes;";
+                var count = Convert.ToInt32(check.ExecuteScalar() ?? 0);
+                if (count == 0)
+                {
+                    using var ins = cn.CreateCommand();
+                    ins.CommandText = @"
+INSERT INTO PaymentModes(Name, FeeFixed, FeeRate, IsActive)
+VALUES
+ ('Espèces', 0, 0, 1),
+ ('Virement', 0, 0, 1),
+ ('Carte bancaire', 0, 1.2, 1);";
+                    ins.ExecuteNonQuery();
+                }
+            }
+
             // Seed TVA si vide
             using (var check = cn.CreateCommand())
             {
@@ -198,6 +230,102 @@ CREATE TABLE IF NOT EXISTS Annexes(
                     ins.ExecuteNonQuery();
                 }
             }
+
+            // -- Numérotation Factures & Avoirs : FACT-{yyyy}-{MM}-{####} / AVOIR-{yyyy}-{MM}-{####}
+            {
+                var num = new NumberingService();
+                // "MONTHLY" = compteur par mois (clé période = AAAA-MM)
+                num.SetFormat("FACT", "FACT-{yyyy}-{MM}-{####}", "MONTHLY");
+                num.SetFormat("AVOIR", "AVOIR-{yyyy}-{MM}-{####}", "MONTHLY");
+            }
+
+            // --- Factures (entête) ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS Factures(
+  Id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  Numero            TEXT UNIQUE,                    -- FACT-YYYY-MM-####
+  ClientId          INTEGER,
+  Date              TEXT    NOT NULL DEFAULT (DATE('now')), -- ISO YYYY-MM-DD
+  Etat              TEXT    NOT NULL DEFAULT 'Brouillon',   -- Brouillon / Cree / Envoye / Payer
+  RemiseGlobale     REAL    NOT NULL DEFAULT 0,
+  Total             REAL    NOT NULL DEFAULT 0,
+  PaymentTermsId    INTEGER NULL,
+  SentAt            TEXT    NULL,
+  DeletedAt         TEXT    NULL,
+  D                 INTEGER NOT NULL DEFAULT 0,      -- drapeau bool (ton 'D' demandé) 0/1
+  DevisSourceId     INTEGER NULL,                    -- lien éventuel au devis source
+  FOREIGN KEY(ClientId) REFERENCES Clients(Id) ON DELETE SET NULL,
+  FOREIGN KEY(PaymentTermsId) REFERENCES PaymentTerms(Id) ON DELETE SET NULL
+);";
+                cmd.ExecuteNonQuery();
+            }
+
+            // --- FactureLignes ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE TABLE IF NOT EXISTS FactureLignes(
+  Id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  FactureId    INTEGER NOT NULL,
+  Designation  TEXT    NOT NULL,
+  Qty          REAL    NOT NULL DEFAULT 1,
+  PU           REAL    NOT NULL DEFAULT 0,
+  Montant      REAL    NOT NULL DEFAULT 0,
+  ArticleId    INTEGER NULL,
+  VarianteId   INTEGER NULL,
+  CotisationRateId INTEGER NULL,
+  DevisLigneId INTEGER NULL,                         -- traçabilité depuis Devis
+  FOREIGN KEY(FactureId) REFERENCES Factures(Id) ON DELETE CASCADE
+);";
+                cmd.ExecuteNonQuery();
+            }
+
+            // --- Index utiles ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+CREATE INDEX IF NOT EXISTS IX_Factures_Client ON Factures(ClientId);
+CREATE INDEX IF NOT EXISTS IX_FactureLignes_Facture ON FactureLignes(FactureId);";
+                cmd.ExecuteNonQuery();
+            }
+
+            // --- Numérotation 'FACT' : pattern & scope ---
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = @"
+INSERT INTO DocNumberingFormats(DocType,Pattern,Scope)
+VALUES('FACT','FACT-{yyyy}-{MM}-{####}','MONTHLY')
+ON CONFLICT(DocType) DO NOTHING;";
+                cmd.ExecuteNonQuery();
+            }
+
+            // --- Factures : snapshot client (ajout ssi manquant) ---
+            void TryAdd(string column, string sqlType)
+            {
+                using var chk = cn.CreateCommand();
+                chk.CommandText = $"PRAGMA table_info(Factures);";
+                using var rd = chk.ExecuteReader();
+                var exists = false;
+                while (rd.Read())
+                    if (string.Equals(rd["name"]?.ToString(), column, StringComparison.OrdinalIgnoreCase))
+                    { exists = true; break; }
+                if (!exists)
+                {
+                    using var alt = cn.CreateCommand();
+                    alt.CommandText = $"ALTER TABLE Factures ADD COLUMN {column} {sqlType};";
+                    alt.ExecuteNonQuery();
+                }
+            }
+            TryAdd("ClientSociete", "TEXT");
+            TryAdd("ClientNomPrenom", "TEXT");
+            TryAdd("ClientAdresseL1", "TEXT");
+            TryAdd("ClientCodePostal", "TEXT");
+            TryAdd("ClientVille", "TEXT");
+            TryAdd("ClientEmail", "TEXT");
+            TryAdd("ClientTelephone", "TEXT");
+
         }
 
         public List<CotisationType> GetCotisationTypes()
@@ -607,6 +735,70 @@ WHERE Id=@id;";
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
             cmd.CommandText = "DELETE FROM EmailTemplates WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        // -------- PAYMENT MODES (CRUD) --------
+        public List<PaymentMode> GetPaymentModes()
+        {
+            var list = new List<PaymentMode>();
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"SELECT Id, Name, FeeFixed, FeeRate, IsActive
+                        FROM PaymentModes
+                        ORDER BY Name;";
+            using var rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                list.Add(new PaymentMode
+                {
+                    Id = rd.GetInt32(0),
+                    Name = rd.GetString(1),
+                    FeeFixed = Convert.ToDecimal(rd.GetDouble(2)),
+                    FeeRate = Convert.ToDecimal(rd.GetDouble(3)),
+                    IsActive = rd.GetInt32(4) != 0
+                });
+            }
+            return list;
+        }
+
+        public int InsertPaymentMode(PaymentMode m)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+INSERT INTO PaymentModes(Name, FeeFixed, FeeRate, IsActive)
+VALUES(@n,@ff,@fr,@a);
+SELECT last_insert_rowid();";
+            Db.AddParam(cmd, "@n", m.Name ?? "");
+            Db.AddParam(cmd, "@ff", m.FeeFixed);
+            Db.AddParam(cmd, "@fr", m.FeeRate);
+            Db.AddParam(cmd, "@a", m.IsActive ? 1 : 0);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        public void UpdatePaymentMode(PaymentMode m)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+UPDATE PaymentModes SET
+  Name=@n, FeeFixed=@ff, FeeRate=@fr, IsActive=@a
+WHERE Id=@id;";
+            Db.AddParam(cmd, "@n", m.Name ?? "");
+            Db.AddParam(cmd, "@ff", m.FeeFixed);
+            Db.AddParam(cmd, "@fr", m.FeeRate);
+            Db.AddParam(cmd, "@a", m.IsActive ? 1 : 0);
+            Db.AddParam(cmd, "@id", m.Id);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeletePaymentMode(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "DELETE FROM PaymentModes WHERE Id=@id;";
             Db.AddParam(cmd, "@id", id);
             cmd.ExecuteNonQuery();
         }
