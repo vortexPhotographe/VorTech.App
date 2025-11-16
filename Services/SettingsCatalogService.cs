@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using VorTech.App.Models;
 
@@ -900,20 +901,24 @@ WHERE Id=@id;";
         {
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
-            cmd.CommandText = @"SELECT Id, Name, Mode, SimpleDue, OrderPct, IsDefault, Body
-                        FROM PaymentTerms WHERE Id=@id;";
+            cmd.CommandText = @"
+SELECT Id, Name, Mode, SimpleDue, OrderPct, IsDefault, Body
+FROM PaymentTerms
+WHERE Id=@id;";
             Db.AddParam(cmd, "@id", id);
             using var rd = cmd.ExecuteReader();
             if (!rd.Read()) return null;
+
             return new PaymentTerm
             {
-                Id = rd.GetInt32(0),
-                Name = rd.IsDBNull(1) ? "" : rd.GetString(1),
-                Mode = rd.IsDBNull(2) ? "SIMPLE" : rd.GetString(2),
-                SimpleDue = rd.IsDBNull(3) ? null : rd.GetString(3),
-                OrderPct = rd.IsDBNull(4) ? (double?)null : rd.GetDouble(4),
-                IsDefault = !rd.IsDBNull(5) && rd.GetInt32(5) != 0,
-                Body = rd.IsDBNull(6) ? "" : rd.GetString(6),
+                Id = Convert.ToInt32(rd["Id"]),
+                Name = rd["Name"]?.ToString() ?? "",
+                Mode = rd["Mode"]?.ToString() ?? "SIMPLE",
+                SimpleDue = rd["SimpleDue"]?.ToString(),
+                OrderPct = rd["OrderPct"] is DBNull ? (double?)null
+                            : Convert.ToDouble(rd["OrderPct"], System.Globalization.CultureInfo.InvariantCulture),
+                IsDefault = Convert.ToInt32(rd["IsDefault"] ?? 0) != 0,
+                Body = rd["Body"]?.ToString() ?? ""
             };
         }
 

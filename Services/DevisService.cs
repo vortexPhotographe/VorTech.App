@@ -479,6 +479,7 @@ WHERE Id=@id;";
 
             using var cn = Db.Open();
             using var tr = cn.BeginTransaction();
+            string devisDateText;
 
             // --- 1) Relire le devis (pour savoir s’il a déjà un numéro)
             using var cmdGet = cn.CreateCommand();
@@ -491,8 +492,16 @@ WHERE Id=@id;";
         FROM Devis
         WHERE Id = @id;";
             Db.AddParam(cmdGet, "@id", devisId);
+
             using var rd = cmdGet.ExecuteReader();
             if (!rd.Read()) throw new InvalidOperationException("Devis introuvable");
+
+            var dateIso = rd["Date"]?.ToString()
+                ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            devisDateText = DateOnly.ParseExact(dateIso, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        .ToString("dd/MM/yyyy");
+
             var numeroActuel = rd["Numero"] as string;
 
             // --- 2) Numéro si absent (format & séquence via NumberingService)
@@ -505,7 +514,8 @@ WHERE Id=@id;";
                 cmdNum.Transaction = tr;
                 cmdNum.CommandText = "UPDATE Devis SET Numero=@n, Etat='Envoye', Date=@d WHERE Id=@id;";
                 Db.AddParam(cmdNum, "@n", numero);
-                Db.AddParam(cmdNum, "@d", DateTime.Now);
+                Db.AddParam(cmdNum, "@d", DateOnly.FromDateTime(DateTime.Now)
+                                  .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 Db.AddParam(cmdNum, "@id", devisId);
                 cmdNum.ExecuteNonQuery();
             }
@@ -603,10 +613,10 @@ WHERE Id=@id;";
                 using var rl = cmdL.ExecuteReader();
                 while (rl.Read())
                 {
-                    var d = rl["Designation"] as string ?? "";
-                    var q = Convert.ToDouble(rl["Qty"], System.Globalization.CultureInfo.InvariantCulture);
-                    var p = Convert.ToDouble(rl["PU"], System.Globalization.CultureInfo.InvariantCulture);
-                    lines.Add((d, q, p));
+                    var desc = rl["Designation"] as string ?? "";
+                    var q = Convert.ToDouble(rl["Qty"], CultureInfo.InvariantCulture);
+                    var p = Convert.ToDouble(rl["PU"], CultureInfo.InvariantCulture);
+                    lines.Add((desc, q, p));
                 }
             }
             // lire les notes
@@ -658,7 +668,9 @@ WHERE Id=@id;";
                     noteBottom: noteBottom,
                     clientPhone: phone,
                     clientEmail: email,
-                    devisId: devisId
+                    devisId: devisId,
+                    docTitle: "Devis",
+                    devisDateText: devisDateText
             );
 
             tr.Commit();
@@ -691,11 +703,16 @@ WHERE Id=@id;";
             decimal remiseEuro;
             string? payText, payPlanJson, noteTop, noteBottom;
             int? bankId = null;
+            string devisDateText;
 
             using (var rd = cmdGet.ExecuteReader())
             {
                 if (!rd.Read()) throw new InvalidOperationException("Devis introuvable");
-                numero = rd["Numero"] as string ?? "";         // doit exister pour régénérer
+                var dateIso = rd["Date"]?.ToString() ?? DateOnly.FromDateTime(DateTime.Now)
+                          .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                devisDateText = DateOnly.ParseExact(dateIso, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                        .ToString("dd/MM/yyyy");
+                numero = rd["Numero"] as string ?? "";
                 clientSociete = rd["ClientSociete"] as string ?? "";
                 clientNomPrenom = rd["ClientNomPrenom"] as string ?? "";
                 addr1 = rd["ClientAdresseL1"] as string ?? "";
@@ -776,7 +793,9 @@ WHERE Id=@id;";
                 noteBottom: noteBottom,
                 clientPhone: phone,
                 clientEmail: email,
-                devisId: devisId
+                devisId: devisId,
+                docTitle: "Devis",
+                devisDateText: devisDateText
             );
 
             return outfile;
@@ -813,6 +832,7 @@ ORDER BY Date DESC, Id DESC;";
 
         public Devis? GetById(int id)
         {
+            Logger.Info($"FACTURE GetById({id})");
             using var cn = Db.Open();
             using var cmd = cn.CreateCommand();
             cmd.CommandText = "SELECT * FROM Devis WHERE Id=@id;";
@@ -840,6 +860,7 @@ ORDER BY Date DESC, Id DESC;";
             using var cmd = cn.CreateCommand();
             cmd.CommandText = "SELECT * FROM DevisAnnexes WHERE DevisId=@d ORDER BY Ordre, Id;";
             Db.AddParam(cmd, "@d", devisId);
+            Logger.Info("FACTURE GetById: SELECT execute");
             using var rd = cmd.ExecuteReader();
             while (rd.Read()) list.Add(MapAnnexe(rd));
             return list;
@@ -972,7 +993,7 @@ WHERE Id=@id;";
             ClientId = r["ClientId"] == DBNull.Value ? null : Convert.ToInt32(r["ClientId"]),
             ClientSociete = r["ClientSociete"]?.ToString(),
             ClientNomPrenom = r["ClientNomPrenom"]?.ToString(),
-            ClientNom = r["ClientNom"]?.ToString(),               // (historique, si tu l’utilises ailleurs)
+            ClientNom = r["ClientNom"]?.ToString(),
             ClientEmail = r["ClientEmail"]?.ToString(),
             ClientTelephone = r["ClientTelephone"]?.ToString(),
             ClientAdresseL1 = r["ClientAdresseL1"]?.ToString(),

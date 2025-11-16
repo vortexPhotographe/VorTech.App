@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Globalization;
 using VorTech.App;
+using Microsoft.Data.Sqlite;
 
 namespace VorTech.App.Services
 {
@@ -17,8 +19,10 @@ namespace VorTech.App.Services
     {
         public string Next(string docType, DateOnly docDate)
         {
+            Logger.Info($"NUM.Next begin: type={docType}, date={docDate}");
             var (pattern, scope) = GetFormat(docType);
             var periodKey = GetPeriodKey(scope, docDate);
+            Logger.Info($"NUM.Next: pattern={pattern}, scope={scope}, periodKey={periodKey}");
 
             using var cn = Db.Open();
             using var tx = cn.BeginTransaction();
@@ -45,7 +49,8 @@ ON CONFLICT(DocType,PeriodKey) DO NOTHING;";
                 Db.AddParam(sel, "@p", periodKey);
                 next = Convert.ToInt32(sel.ExecuteScalar() ?? 1, CultureInfo.InvariantCulture);
             }
-
+            Logger.Info($"NUM.Next: current seq={next}");
+           
             // formater le numéro
             var numero = Format(pattern, docDate, next);
 
@@ -54,12 +59,13 @@ ON CONFLICT(DocType,PeriodKey) DO NOTHING;";
             {
                 upd.Transaction = tx;
                 upd.CommandText = "UPDATE DocNumberingCounters SET NextSeq=@n WHERE DocType=@d AND PeriodKey=@p;";
+                Logger.Info($"NUM.Next: incremented to {next + 1}");
                 Db.AddParam(upd, "@n", next + 1);
                 Db.AddParam(upd, "@d", docType);
                 Db.AddParam(upd, "@p", periodKey);
                 upd.ExecuteNonQuery();
             }
-
+            Logger.Info($"NUM.Next end -> {numero}");
             tx.Commit();
             return numero;
         }

@@ -18,31 +18,50 @@ namespace VorTech.App
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
-            var cs = new SqliteConnectionStringBuilder
+            var csb = new SqliteConnectionStringBuilder
             {
                 DataSource = dbPath,
                 Mode = SqliteOpenMode.ReadWriteCreate,
-                Cache = SqliteCacheMode.Shared
-            }.ToString();
+                Cache = SqliteCacheMode.Shared,
 
-            var cn = new SqliteConnection(cs);
+                // NEW: délai d’attente par défaut (équivalent busy_timeout côté provider)
+                DefaultTimeout = 5 // secondes
+            };
+
+            var cn = new SqliteConnection(csb.ToString());
             cn.Open();
 
             // Log d’ouverture (chemin exact de la DB)
             Logger.Info($"DB OPEN -> {dbPath}");
 
-            // PRAGMA usuels
+            // PRAGMA usuels (on garde les tiens)
             using (var cmd = cn.CreateCommand())
             {
-                cmd.CommandText = "PRAGMA foreign_keys = ON;"; cmd.ExecuteNonQuery();
+                cmd.CommandText = "PRAGMA foreign_keys = ON;";
+                cmd.ExecuteNonQuery();
             }
             using (var cmd = cn.CreateCommand())
             {
-                cmd.CommandText = "PRAGMA journal_mode = WAL;"; cmd.ExecuteNonQuery();
+                cmd.CommandText = "PRAGMA journal_mode = WAL;";
+                cmd.ExecuteNonQuery();
             }
             using (var cmd = cn.CreateCommand())
             {
-                cmd.CommandText = "PRAGMA synchronous = NORMAL;"; cmd.ExecuteNonQuery();
+                cmd.CommandText = "PRAGMA synchronous = NORMAL;";
+                cmd.ExecuteNonQuery();
+            }
+
+            // NEW: ajoute explicitement busy_timeout pour SQLite (complémentaire à DefaultTimeout)
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA busy_timeout=5000;"; // 5000 ms
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = cn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA busy_timeout = 5000;"; // 5s d’attente si la table est verrouillée
+                cmd.ExecuteNonQuery();
             }
 
             return cn;

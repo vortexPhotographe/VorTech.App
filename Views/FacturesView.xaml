@@ -6,7 +6,7 @@
              mc:Ignorable="d"
              d:DesignWidth="1400" d:DesignHeight="860">
 	<UserControl.Resources>
-		<!-- Styles repris de DevisView -->
+		<!-- Styles locaux (copie de DevisView) -->
 		<Style x:Key="DarkComboItem" TargetType="{x:Type ComboBoxItem}">
 			<Setter Property="Foreground" Value="#D0D0D0"/>
 			<Setter Property="Background" Value="#2A2A2A"/>
@@ -39,23 +39,26 @@
 								<ColumnDefinition Width="20"/>
 							</Grid.ColumnDefinitions>
 							<Border x:Name="Border" Grid.ColumnSpan="2"
-									Background="{TemplateBinding Background}"
-									BorderBrush="{TemplateBinding BorderBrush}"
-									BorderThickness="1" CornerRadius="2"/>
-							<ContentPresenter x:Name="ContentSite" Margin="6,2,20,2"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1" CornerRadius="2"/>
+							<ContentPresenter x:Name="ContentSite"
+											  Margin="6,2,20,2"
 											  VerticalAlignment="Center"
-											  Content="{TemplateBinding SelectionBoxItem}"/>
+											  Content="{TemplateBinding SelectionBoxItem}"
+											  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+											  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
 							<ToggleButton Grid.Column="1" x:Name="DropDownToggle"
-										  Focusable="False"
-										  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-										  Background="{TemplateBinding Background}"
-										  BorderBrush="{TemplateBinding BorderBrush}">
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}">
 								<Path HorizontalAlignment="Center" VerticalAlignment="Center"
-									  Data="M 0 0 L 4 4 L 8 0 Z" Fill="#D0D0D0"/>
+                                      Data="M 0 0 L 4 4 L 8 0 Z" Fill="#D0D0D0"/>
 							</ToggleButton>
 							<Popup x:Name="PART_Popup" Placement="Bottom"
-								   IsOpen="{TemplateBinding IsDropDownOpen}"
-								   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
 								<Border Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1">
 									<ScrollViewer CanContentScroll="True">
 										<StackPanel IsItemsHost="True"/>
@@ -79,7 +82,6 @@
 			<Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
 		</Style>
 
-		<!-- Bouton d’action aligné sur Devis -->
 		<Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
 			<Setter Property="Padding" Value="12,6"/>
 			<Setter Property="Background" Value="{DynamicResource Panel}"/>
@@ -96,56 +98,45 @@
 			</Style.Triggers>
 		</Style>
 	</UserControl.Resources>
-    <!-- LAYOUT GLOBAL -->
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <!-- Toolbar -->
-            <RowDefinition Height="*"/>
-            <!-- Content -->
-            <RowDefinition Height="Auto"/>
-            <!-- Footer (vide) -->
-        </Grid.RowDefinitions>
 
-        <!-- TOOLBAR -->
-        <DockPanel Grid.Row="0" Margin="8" LastChildFill="False">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                <TextBlock Text="Facture" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
-                <TextBlock Text=" " Width="8"/>
-                <TextBlock Text="{Binding Numero}" FontSize="16" Opacity="0.8" VerticalAlignment="Center"/>
-                <TextBlock Text=" • " Margin="8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Etat}" VerticalAlignment="Center"/>
-                <TextBlock Text=" • " Margin="8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}" VerticalAlignment="Center"/>
-            </StackPanel>
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Toolbar (identique à Devis) -->
+		<DockPanel Grid.Row="0" Margin="8" LastChildFill="False">
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+				<TextBlock Text="Facture" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+				<TextBlock Text=" " Width="8"/>
+				<TextBlock Text="{Binding Numero}" FontSize="16" Opacity="0.8" VerticalAlignment="Center"/>
+				<TextBlock Text=" • " Margin="8,0" VerticalAlignment="Center"/>
+				<TextBlock Text="{Binding Etat}" VerticalAlignment="Center"/>
+				<TextBlock Text=" • " Margin="8,0" VerticalAlignment="Center"/>
+				<TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}" VerticalAlignment="Center"/>
+			</StackPanel>
 
 			<StackPanel Orientation="Horizontal" Margin="200,0">
-				<!-- Enregistrer -->
-				<Button Content="Enregistrer"
-						Style="{StaticResource ActionButton}"
-						Click="Save_Click" Margin="4,0"/>
+				<Button Content="Enregistrer" Style="{StaticResource ActionButton}" Click="Save_Click" Margin="4,0"/>
+				<Button Content="Nouveau"     Style="{StaticResource ActionButton}" Click="New_Click"  Margin="4,0"/>
 
-				<!-- Nouveau -->
-				<Button Content="Nouveau"
-						Style="{StaticResource ActionButton}"
-						Click="New_Click" Margin="4,0"/>
-
-				<!-- Supprimer -->
 				<Button Content="Supprimer" Click="Delete_Click" Margin="4,0">
 					<Button.Style>
 						<Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
 							<Setter Property="Visibility" Value="Collapsed"/>
 							<Style.Triggers>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Brouillon">
+								<DataTrigger Binding="{Binding Etat}" Value="Brouillon">
 									<Setter Property="Visibility" Value="Visible"/>
 								</DataTrigger>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Cree">
+								<DataTrigger Binding="{Binding Etat}" Value="Cree">
 									<Setter Property="Visibility" Value="Visible"/>
 								</DataTrigger>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Envoye">
+								<DataTrigger Binding="{Binding Etat}" Value="Envoye">
 									<Setter Property="Visibility" Value="Visible"/>
 								</DataTrigger>
-								<DataTrigger Binding="{Binding SelectedFacture.Id}" Value="0">
+								<DataTrigger Binding="{Binding Id}" Value="0">
 									<Setter Property="Visibility" Value="Collapsed"/>
 								</DataTrigger>
 							</Style.Triggers>
@@ -153,16 +144,15 @@
 					</Button.Style>
 				</Button>
 
-				<!-- Émettre (numéro) -->
 				<Button Content="Émettre (numéro)" Click="BtnEmit_Click" Margin="4,0">
 					<Button.Style>
 						<Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
 							<Setter Property="Visibility" Value="Collapsed"/>
 							<Style.Triggers>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Brouillon">
+								<DataTrigger Binding="{Binding Etat}" Value="Brouillon">
 									<Setter Property="Visibility" Value="Visible"/>
 								</DataTrigger>
-								<DataTrigger Binding="{Binding SelectedFacture.Id}" Value="0">
+								<DataTrigger Binding="{Binding Id}" Value="0">
 									<Setter Property="Visibility" Value="Collapsed"/>
 								</DataTrigger>
 							</Style.Triggers>
@@ -170,17 +160,16 @@
 					</Button.Style>
 				</Button>
 
-				<!-- Envoyer / Renvoyer -->
 				<Button x:Name="BtnSendMail" Click="BtnSendMail_Click" Margin="4,0" Content="Envoyer par e-mail">
 					<Button.Style>
 						<Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
 							<Setter Property="Visibility" Value="Collapsed"/>
 							<Style.Triggers>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Cree">
+								<DataTrigger Binding="{Binding Etat}" Value="Cree">
 									<Setter Property="Visibility" Value="Visible"/>
 									<Setter Property="Content"    Value="Envoyer par e-mail"/>
 								</DataTrigger>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Envoye">
+								<DataTrigger Binding="{Binding Etat}" Value="Envoye">
 									<Setter Property="Visibility" Value="Visible"/>
 									<Setter Property="Content"    Value="Renvoyer"/>
 								</DataTrigger>
@@ -189,13 +178,12 @@
 					</Button.Style>
 				</Button>
 
-				<!-- Générer PDF -->
 				<Button Content="Générer PDF" Click="BtnRegenPdf_Click" Margin="4,0">
 					<Button.Style>
 						<Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
 							<Setter Property="Visibility" Value="Visible"/>
 							<Style.Triggers>
-								<DataTrigger Binding="{Binding SelectedFacture.Etat}" Value="Brouillon">
+								<DataTrigger Binding="{Binding Etat}" Value="Brouillon">
 									<Setter Property="Visibility" Value="Collapsed"/>
 								</DataTrigger>
 							</Style.Triggers>
@@ -203,268 +191,254 @@
 					</Button.Style>
 				</Button>
 			</StackPanel>
-        </DockPanel>
+		</DockPanel>
 
-        <!-- CORPS en 3 colonnes -->
-        <Grid Grid.Row="1" Margin="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="320"/>
-                <!-- Liste -->
-                <ColumnDefinition Width="*"/>
-                <!-- Fiche -->
-                <ColumnDefinition Width="420"/>
-                <!-- Pane droite -->
-            </Grid.ColumnDefinitions>
+		<!-- Corps en 3 colonnes -->
+		<Grid Grid.Row="1" Margin="8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="320"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="420"/>
+			</Grid.ColumnDefinitions>
 
-            <!-- Colonne gauche : Liste + recherche -->
-            <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <TextBlock Text="Recherche" FontWeight="Bold" Margin="0,0,0,4"/>
-                    <TextBox x:Name="SearchBox" Width="220"
+			<!-- Liste gauche -->
+			<DockPanel Grid.Column="0" Margin="0,0,12,0">
+				<StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+					<TextBlock Text="Recherche" FontWeight="Bold" Margin="0,0,0,4"/>
+					<TextBox x:Name="SearchBox" Width="220"
                              ToolTip="Numéro de facture, nom/prénom/société"
                              TextChanged="OnSearchTextChanged"/>
-                </StackPanel>
+				</StackPanel>
 
-                <GroupBox Header="Factures" DockPanel.Dock="Bottom">
-                    <ListBox x:Name="FactureList"
+				<GroupBox Header="Factures" DockPanel.Dock="Bottom">
+					<ListBox x:Name="FactureList"
                              SelectionChanged="OnListSelectionChanged"
                              Background="#252525" BorderBrush="#3A3A3A" Foreground="#EFEFEF"
                              ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Margin" Value="6"/>
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="10" BorderThickness="1" BorderBrush="#404040" CornerRadius="3" Background="#2B2B2B">
-                                    <StackPanel>
-                                        <!-- L1 : Numéro (ou Brouillon) -->
-                                        <TextBlock FontWeight="SemiBold">
-                                            <TextBlock.Text>
-                                                <Binding Path="Numero" TargetNullValue="Brouillon">
-                                                    <Binding.FallbackValue>Brouillon</Binding.FallbackValue>
-                                                </Binding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
+						<ListBox.ItemContainerStyle>
+							<Style TargetType="ListBoxItem">
+								<Setter Property="Margin" Value="6"/>
+								<Setter Property="Padding" Value="0"/>
+								<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							</Style>
+						</ListBox.ItemContainerStyle>
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<Border Padding="10" BorderThickness="1" BorderBrush="#404040" CornerRadius="3" Background="#2B2B2B">
+									<StackPanel>
+										<TextBlock FontWeight="SemiBold">
+											<TextBlock.Text>
+												<Binding Path="Numero" TargetNullValue="Brouillon">
+													<Binding.FallbackValue>Brouillon</Binding.FallbackValue>
+												</Binding>
+											</TextBlock.Text>
+										</TextBlock>
+										<TextBlock Text="{Binding ClientSociete}">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Visibility" Value="Visible"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding ClientSociete}" Value="">
+															<Setter Property="Visibility" Value="Collapsed"/>
+														</DataTrigger>
+														<DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
+															<Setter Property="Visibility" Value="Collapsed"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
+										<TextBlock Text="{Binding ClientNomPrenom}">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Visibility" Value="Collapsed"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding ClientSociete}" Value="">
+															<Setter Property="Visibility" Value="Visible"/>
+														</DataTrigger>
+														<DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
+															<Setter Property="Visibility" Value="Visible"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
+										<TextBlock Text="{Binding Etat}" FontStyle="Italic" Foreground="#B0B0B0"/>
+									</StackPanel>
+								</Border>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</GroupBox>
+			</DockPanel>
 
-                                        <!-- L2 : Société si présente -->
-                                        <TextBlock Text="{Binding ClientSociete}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+			<!-- Fiche (centre) -->
+			<ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+				<StackPanel Margin="0,0,12,0">
+					<GroupBox Header="Destinataire" Margin="0,0,0,12">
+						<Grid Margin="8">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							</Grid.RowDefinitions>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="160"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="160"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
 
-                                        <!-- L2 bis : Nom Prénom si pas de société -->
-                                        <TextBlock Text="{Binding ClientNomPrenom}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ClientSociete}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-
-                                        <!-- L3 : État -->
-                                        <TextBlock Text="{Binding Etat}" FontStyle="Italic" Foreground="#B0B0B0"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </GroupBox>
-            </DockPanel>
-
-            <!-- Colonne centrale : Fiche -->
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="0,0,12,0">
-
-                    <!-- Destinataire (identique structure) -->
-                    <GroupBox Header="Destinataire" Margin="0,0,0,12">
-                        <Grid Margin="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="160"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Ligne 0 : Titre libre + Sélection client -->
-                            <Label Grid.Row="0" Grid.Column="0" Content="Titre" VerticalAlignment="Center"/>
-                            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" x:Name="TxtClientQuick"
+							<Label Grid.Row="0" Grid.Column="0" Content="Titre" VerticalAlignment="Center"/>
+							<Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
+								<TextBox Grid.Column="0" x:Name="TxtClientQuick"
                                          ToolTip="Titre libre de la facture (facultatif)"
                                          Margin="0,4,8,4"/>
-                                <Button Grid.Column="1" Content="Sélectionner…" Padding="10,6"
+								<Button Grid.Column="1" Content="Sélectionner…" Padding="10,6"
                                         Click="SelectClient_Click"/>
-                            </Grid>
+							</Grid>
 
-                            <!-- Ligne 1 : Société / Nom Prénom -->
-                            <Label Grid.Row="1" Grid.Column="0" Content="Société" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtSociete"
-         Grid.Row="1" Grid.Column="1" Margin="0,4,8,4"
-         Text="{Binding ClientSociete, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="1" Grid.Column="0" Content="Société" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtSociete"
+                                     Grid.Row="1" Grid.Column="1" Margin="0,4,8,4"
+                                     Text="{Binding ClientSociete, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="1" Grid.Column="2" Content="Nom Prénom" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtNomPrenom"
+                                     Grid.Row="1" Grid.Column="3" Margin="0,4,8,4"
+                                     Text="{Binding ClientNomPrenom, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
 
-                            <Label Grid.Row="1" Grid.Column="2" Content="Nom Prénom" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtNomPrenom"
-         Grid.Row="1" Grid.Column="3" Margin="0,4,8,4"
-         Text="{Binding ClientNomPrenom, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="2" Grid.Column="0" Content="Adresse" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtAdresse"
+                                     Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,8,4"
+                                     Text="{Binding ClientAdresseL1, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
 
-                            <!-- Ligne 2 : Adresse -->
-                            <Label Grid.Row="2" Grid.Column="0" Content="Adresse" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtAdresse"
-         Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,8,4"
-         Text="{Binding ClientAdresseL1, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="3" Grid.Column="0" Content="Code postal" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtCp"
+                                     Grid.Row="3" Grid.Column="1" Margin="0,4,8,4" Width="120"
+                                     Text="{Binding ClientCodePostal, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
 
-                            <!-- Ligne 3 : CP / Ville -->
-                            <Label Grid.Row="3" Grid.Column="0" Content="Code postal" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtCp"
-         Grid.Row="3" Grid.Column="1" Margin="0,4,8,4" Width="120"
-         Text="{Binding ClientCodePostal, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="3" Grid.Column="2" Content="Ville" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtVille"
+                                     Grid.Row="3" Grid.Column="3" Margin="0,4,8,4"
+                                     Text="{Binding ClientVille, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
 
-                            <Label Grid.Row="3" Grid.Column="2" Content="Ville" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtVille"
-         Grid.Row="3" Grid.Column="3" Margin="0,4,8,4"
-         Text="{Binding ClientVille, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="4" Grid.Column="0" Content="Email" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtEmail"
+                                     Grid.Row="4" Grid.Column="1" Margin="0,4,8,4"
+                                     Text="{Binding ClientEmail, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
+							<Label Grid.Row="4" Grid.Column="2" Content="Téléphone" VerticalAlignment="Center"/>
+							<TextBox x:Name="TxtTel"
+                                     Grid.Row="4" Grid.Column="3" Margin="0,4,8,4"
+                                     Text="{Binding ClientTelephone, UpdateSourceTrigger=LostFocus}"
+                                     LostFocus="ClientFields_LostFocus"/>
+						</Grid>
+					</GroupBox>
 
-                            <!-- Ligne 4 : Email / Téléphone -->
-                            <Label Grid.Row="4" Grid.Column="0" Content="Email" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtEmail"
-         Grid.Row="4" Grid.Column="1" Margin="0,4,8,4"
-         Text="{Binding ClientEmail, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
+					<GroupBox Header="Lignes" Margin="0,0,0,12">
+						<DockPanel Margin="8">
+							<StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
+								<Button Content="+ Ajouter"  Margin="0,0,8,0" Click="AddLine_Click"/>
+								<Button Content="Dupliquer"  Margin="0,0,8,0" Click="DuplicateLine_Click"/>
+								<Button Content="Supprimer"  Click="DeleteLine_Click"/>
+							</StackPanel>
 
-                            <Label Grid.Row="4" Grid.Column="2" Content="Téléphone" VerticalAlignment="Center"/>
-                            <TextBox x:Name="TxtTel"
-         Grid.Row="4" Grid.Column="3" Margin="0,4,8,4"
-         Text="{Binding ClientTelephone, UpdateSourceTrigger=LostFocus}"
-         LostFocus="ClientFields_LostFocus"/>
-                        </Grid>
-                    </GroupBox>
-
-                    <!-- Lignes -->
-                    <GroupBox Header="Lignes" Margin="0,0,0,12">
-                        <DockPanel Margin="8">
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,8">
-                                <Button Content="+ Ajouter"  Margin="0,0,8,0" Click="AddLine_Click"/>
-                                <Button Content="Dupliquer"  Margin="0,0,8,0" Click="DuplicateLine_Click"/>
-                                <Button Content="Supprimer"  Click="DeleteLine_Click"/>
-                            </StackPanel>
-
-                            <DataGrid x:Name="GridLines"
-                                      ItemsSource="{Binding Lignes}" AutoGenerateColumns="False"
+							<DataGrid x:Name="GridLines"
+                                      AutoGenerateColumns="False"
                                       CanUserAddRows="False"
                                       CellEditEnding="CellEditEnded">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Désignation" Binding="{Binding Etat}" Width="*" />
-                                    <DataGridTextColumn Header="Qté" Binding="{Binding Etat}" Width="80" />
-                                    <DataGridTextColumn Header="PU (€)" Binding="{Binding Etat}" Width="100" />
-                                    <DataGridTextColumn Header="Montant (€)" IsReadOnly="True"
-                                                        Binding="{Binding Etat}" Width="120" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </DockPanel>
-                    </GroupBox>
+								<DataGrid.Columns>
+									<DataGridTextColumn Header="Désignation"
+                                                        Binding="{Binding Designation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        Width="*"/>
+									<DataGridTextColumn Header="Qté"
+                                                        Binding="{Binding Qty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:#0.##}}"
+                                                        Width="80"/>
+									<DataGridTextColumn Header="PU (€)"
+                                                        Binding="{Binding PU, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.##}}"
+                                                        Width="100"/>
+									<DataGridTextColumn Header="Montant (€)"
+                                                        Binding="{Binding Montant, StringFormat={}{0:0.##}}"
+                                                        IsReadOnly="True" Width="120"/>
+								</DataGrid.Columns>
+							</DataGrid>
+						</DockPanel>
+					</GroupBox>
 
-                    <!-- Remise + Total -->
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+					<Grid Margin="0,0,0,12">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
 
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Remise globale (€)" VerticalAlignment="Center"/>
-                            <TextBlock Text=" " Width="8"/>
-                            <TextBox x:Name="TxtRemise" Width="140"
+						<StackPanel Orientation="Horizontal">
+							<TextBlock Text="Remise globale (€)" VerticalAlignment="Center"/>
+							<TextBlock Text=" " Width="8"/>
+							<TextBox x:Name="TxtRemise" Width="140"
                                      Text="{Binding RemiseGlobale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      LostFocus="RemiseLostFocus"/>
-                        </StackPanel>
+						</StackPanel>
 
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="Total :" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <TextBlock Text=" " Width="8"/>
-                            <TextBlock x:Name="TxtTotal">
-                                <TextBlock.Text>
-                                    <Binding Path="Total" StringFormat="{}{0:0.##} €"/>
-                                </TextBlock.Text>
-                            </TextBlock>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </ScrollViewer>
+						<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+							<TextBlock Text="Total :" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+							<TextBlock Text=" " Width="8"/>
+							<TextBlock x:Name="TxtTotal">
+								<TextBlock.Text>
+									<Binding Path="Total" StringFormat="{}{0:0.##} €"/>
+								</TextBlock.Text>
+							</TextBlock>
+						</StackPanel>
+					</Grid>
+				</StackPanel>
+			</ScrollViewer>
 
-            <!-- Colonne droite : Modalités & Compte bancaire (même place que dans DevisView) -->
-            <ScrollViewer Grid.Column="2"
+			<!-- Pane droite : modalités + banque -->
+			<ScrollViewer Grid.Column="2"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           CanContentScroll="True"
                           Padding="0">
-                <StackPanel x:Name="RightPane" Orientation="Vertical">
-                    <GroupBox Header="Modalités de règlement" Margin="0,12,0,0">
-                        <StackPanel Margin="8">
-                            <ComboBox x:Name="CmbPayment"
-                                      Width="260"
-                                      Style="{StaticResource DarkCombo}"
-                                      DisplayMemberPath="Name"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding PaymentTermsId, Mode=TwoWay}"
-                                      SelectionChanged="CmbPayment_SelectionChanged"/>
-                            <TextBlock Text="Choisissez les modalités de règlement."
+				<StackPanel x:Name="RightPane" Orientation="Vertical">
+					<GroupBox Header="Modalités de règlement" Margin="0,12,0,0">
+						<StackPanel Margin="8">
+							<ComboBox x:Name="CmbPayment"
+								  Width="260"
+								  Style="{StaticResource DarkCombo}"
+								  DisplayMemberPath="Name"
+								  SelectedValuePath="Id"
+								  SelectedValue="{Binding PaymentTermsId, Mode=TwoWay}"
+								  SelectionChanged="CmbPayment_SelectionChanged"/>
+							<TextBlock Text="Choisissez les modalités de règlement."
                                        Foreground="#B0B0B0" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </GroupBox>
+						</StackPanel>
+					</GroupBox>
 
-                    <GroupBox Header="Compte bancaire (pied de page)" Margin="0,12,0,0">
-                        <StackPanel Margin="8">
-                            <ComboBox x:Name="CmbBank"
-                                      DisplayMemberPath="DisplayName"
-                                      SelectedValuePath="Id"
-                                      Style="{StaticResource DarkCombo}"
-                                      SelectedValue="{Binding BankAccountId, Mode=TwoWay}"
-                                      SelectionChanged="CmbBank_SelectionChanged"
-                                      Width="260"/>
-                            <TextBlock Text="Choisissez le compte qui sera affiché en pied de page du PDF."
+					<GroupBox Header="Compte bancaire (pied de page)" Margin="0,12,0,0">
+						<StackPanel Margin="8">
+							<ComboBox x:Name="CmbBank"
+									  DisplayMemberPath="DisplayName"
+									  SelectedValuePath="Id"
+									  Style="{StaticResource DarkCombo}"
+									  SelectedValue="{Binding BankAccountId, Mode=TwoWay}"
+									  SelectionChanged="CmbBank_SelectionChanged"
+									  Width="260"/>
+							<TextBlock Text="Choisissez le compte qui sera affiché en pied de page du PDF."
                                        Foreground="#B0B0B0" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </GroupBox>
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
-    </Grid>
+						</StackPanel>
+					</GroupBox>
+				</StackPanel>
+			</ScrollViewer>
+		</Grid>
+	</Grid>
 </UserControl>

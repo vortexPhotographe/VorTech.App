@@ -79,5 +79,27 @@ WHERE Id=@id;";
             BankName    = r["BankName"]?.ToString(),
             IsDefault   = Convert.ToInt32(r["IsDefault"]) == 1
         };
+
+        public BankAccount? GetById(int id)
+        {
+            using var cn = Db.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = "SELECT Id, Titulaire, Nom, IBAN, BIC, Actif FROM BankAccounts WHERE Id=@id;";
+            Db.AddParam(cmd, "@id", id);
+
+            using var rd = cmd.ExecuteReader();
+            if (!rd.Read()) return null;
+
+            return new BankAccount
+            {
+                Id = Convert.ToInt32(rd["Id"]),
+                DisplayName = rd["DisplayName"]?.ToString() ?? "",
+                Holder = rd["Titulaire"]?.ToString() ?? "",   // colonne SQL 'Titulaire'
+                BankName = rd["Nom"]?.ToString() ?? "",         // colonne SQL 'Nom'
+                Iban = rd["IBAN"]?.ToString() ?? "",
+                Bic = rd["BIC"]?.ToString() ?? "",
+                IsDefault = Convert.ToInt32(rd["IsDefault"] ?? 0) != 0
+            };
+        }
     }
 }

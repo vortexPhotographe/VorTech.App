@@ -60,12 +60,15 @@ namespace VorTech.App
             string? bic,
             string? paymentTermsText,
             string? paymentPlanJson,
-            string? noteTop = null,
-            string? noteBottom = null,
-            string? devisDateText = null,
-            string? clientPhone = null,
-            string? clientEmail = null,
-            int? devisId = null
+            string? noteTop,
+            string? noteBottom,
+            string? devisDateText,
+            string? clientPhone,
+            string? clientEmail,
+            int? devisId,
+            string docTitle = "Facture",
+            string? validityText = null,
+            string? paymentModeText = null
         )
         {
             var cfg = ConfigService.Load();
@@ -74,7 +77,7 @@ namespace VorTech.App
             Color Accent = Color.FromRgb(255, 0, 0); // #FF0000
 
             var doc = new Document();
-            doc.Info.Title = $"Devis {numero}";
+            doc.Info.Title = $"{docTitle} {numero}";
 
             // Styles
             Style normal = doc.Styles["Normal"]!;
@@ -193,40 +196,56 @@ namespace VorTech.App
             {
                 var cell = hr.Cells[1];
 
-                // Bandeau rouge "Devis"
+                // Bandeau rouge ("Devis" / "Facture")
                 var band = cell.Elements.AddTable();
                 band.Borders.Visible = false;
                 band.AddColumn(Unit.FromMillimeter(105));
                 var br = band.AddRow();
                 br.Cells[0].Shading.Color = Accent;
-                var pBand = br.Cells[0].AddParagraph("Devis");
+                var pBand = br.Cells[0].AddParagraph(docTitle);
                 pBand.Format.Font.Color = Colors.White;
                 pBand.Format.Font.Bold = true;
                 pBand.Format.Font.Size = 11;
                 pBand.Format.SpaceBefore = Unit.FromMillimeter(1.2);
                 pBand.Format.SpaceAfter = Unit.FromMillimeter(1.2);
 
-                // Tableau infos (libellé / valeur) — via Elements.AddTable()
+                var isInvoice = docTitle.Equals("Facture", StringComparison.OrdinalIgnoreCase);
+
+                // Tableau infos
                 var info = cell.Elements.AddTable();
                 info.Borders.Visible = false;
                 info.AddColumn(Unit.FromMillimeter(55)); // libellé
-                info.AddColumn(Unit.FromMillimeter(50)); // valeur (assez large pour tenir sur 1 ligne)
+                info.AddColumn(Unit.FromMillimeter(50)); // valeur
                 void AddInfo(string lib, string? val, bool rightAlign = true)
                 {
                     var row = info.AddRow();
-                    var lp = row.Cells[0].AddParagraph(lib); lp.Format.Font.Size = 11;
+                    var lp = row.Cells[0].AddParagraph(lib);
+                    lp.Format.Font.Size = 11;
                     var rp = row.Cells[1].AddParagraph(val ?? "");
                     rp.Format.Font.Size = 11;
                     rp.Format.Alignment = rightAlign ? ParagraphAlignment.Right : ParagraphAlignment.Left;
                 }
 
-                AddInfo("Numéro de devis", numero);
-                AddInfo("Date du devis", !string.IsNullOrWhiteSpace(devisDateText) ? devisDateText : DateTime.Now.ToString("dd/MM/yyyy"));
-                AddInfo("Devis valable 30 jours", "", rightAlign: false);
+                // Numéro
+                AddInfo($"Numéro de {docTitle.ToLower()}", numero);
 
-                // “Conditions de paiement” sur 1 ligne (espaces insécables)
-                var payText = (paymentTermsText ?? "—").Replace(" ", "\u00A0");
-                AddInfo("Conditions de paiement", payText);
+                // Date : "Date de la facture" ou "Date du devis"
+                var dateLabel = isInvoice ? "Date de la facture" : "Date du devis";
+                AddInfo(dateLabel, !string.IsNullOrWhiteSpace(devisDateText)
+                                    ? devisDateText
+                                    : DateTime.Now.ToString("dd/MM/yyyy"));
+
+                // Spécifique DEVIS : "Devis valable 30 jours" (ou ton texte si fourni)
+                if (!isInvoice && !string.IsNullOrWhiteSpace(validityText))
+                    AddInfo(validityText, "", rightAlign: false);
+
+                // Spécifique FACTURE : "Mode de règlement" si fourni
+                if (isInvoice && !string.IsNullOrWhiteSpace(paymentModeText))
+                    AddInfo("Mode de règlement", paymentModeText);
+
+                // Les "Conditions de paiement" si fourni (pour Devis ET Facture)
+                if (!string.IsNullOrWhiteSpace(paymentTermsText))
+                    AddInfo("Conditions de paiement", paymentTermsText);
 
                 // Barre rouge “Total à payer”
                 decimal totalPanel = 0m;

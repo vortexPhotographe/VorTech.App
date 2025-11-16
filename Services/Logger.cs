@@ -7,7 +7,7 @@ namespace VorTech.App
     {
         private static readonly object _sync = new();
         private static string _logFile = Path.Combine(Paths.LogsDir, "app.log");
-        private static bool _initialized = false;
+        private static bool _initialized = true;
 
         static Logger() { /* on ne fait rien ici, on laisse Init gérer le dossier */ }
 
